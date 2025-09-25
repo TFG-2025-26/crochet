@@ -1,0 +1,51 @@
+puntos:
+Sc, Inc, Dc, Hdc, Tc... etc
+
+Cada punto puede estar seguido de un número, y se repetirá ese número de veces. Si no, se asume q es uno
+ejemplo: sc 3
+
+Cada punto está seguido de ,
+ejemplo: sc 3, dc, sc 4. 
+
+Una secuencia de puntos puede estar contenida entre parentésis. Estos parentesis pueden estar afectados por dos modificadores:
+- x número, y se repetirá ese número de veces. Ejemplo: (sc 4, dc 3)x3
+- in same st, y se harán todos esos puntos en el mismo punto. Ejemplo: (sc 4, inc) in same st
+
+una secuencia de puntos entre () también puede estar precedido por BLO o FLO (back loops only, front loops only).
+ejemplo: BLO(sc 4, inc), FLO(sc 4, inc)
+
+Estas secuencias pueden anidarse. Ejemplo: (sc 4, (2dc, sc) in same st, sc 3)x2.
+adicionalmente, pueden anidarse también con FLO y BLO.
+ejemplo: BLO(sc 4, inc, dc 2)x3 es equivalente a BLO((sc 4, inc, dc 3)x3)
+OPCIONAL: () puede ser sustituido por [] (por preferencia y claridad). Ejemplo: [sc 3, inc 2]x2 es lo mismo que (sc 3, inc 2)x2
+
+En caso de que una secuencia entre parentesis o corchetes no vaya despues o seguido de uno de los dos modificadores, será equivalente a la misma secuencia sin corchetes.
+
+vueltas:
+una vuelta tendrá que empezar por rnd y acabar con un salto de linea. Una linea en blanco entre dos vueltas no tendrá ningun efecto.
+rnd puede ser seguida por dos, uno, o ningún número. Si no es seguido de ningún número, o del número de vuelta correspondiente, se asumirá que es la vuelta siguiente. 
+Ejemplo: rnd 3: es equivalente a rnd: . rnd 2 o rnd 9 será considerado incorrecto.
+
+Si va seguido de dos números separados por un guión, esa vuelta se repetirá el numero de veces correspondiente.
+Ejemplo: rnd 3-4 se repetirá dos veces. rnd 3-9 se repetirá siete veces.
+
+Una vuelta tendrá que contener el número de puntos exactos que el resultado de la vuelta anterior, contando con el modificador de in same st.
+Ejemplo: si la vuelta anterior acabó con 4 puntos, rnd 2: sc 2, (sc 4) in same st, sc será una vuelta válida. rnd 2: sc 3, sc 4 no sería correcta.
+
+Una vuelta puede acabar con la palabra turn. En ese caso, puede tener un número de puntos inferior a la vuelta anterior, pero nunca mayor. si el número de puntos es inferior que la vuelta anterior, se tendrán en cuenta esos puntos para la siguiente vuelta. Sin embargo, si la siguiente vuelta caba también con la palabra turn, el número de puntos de esa vuelta será los puntos desde el último turn.
+Ejemplo: rnd 2: sc 4, dc 2, turn    //si la vuelta anterior tenía 8 puntos, se considera q esta también tiene 8 puntos
+         rnd 3: sc 2, turn    //esta vuelta tiene dos puntos
+
+si después de varios turns, se omite al final de una vuelta, se continuará trabajando en espiral.
+
+Los comentarios se podrán poner con // o con #
+
+Problemas a resolver:
+cadenetas
+skip para saltarse puntos
+
+ambos sería usados como puntos normales.
+
+
+
+
