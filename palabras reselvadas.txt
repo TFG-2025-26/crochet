@@ -12,14 +12,20 @@ Una secuencia de puntos puede estar contenida entre parentésis. Estos parentesi
 - in same st, y se harán todos esos puntos en el mismo punto. Ejemplo: (sc 4, inc) in same st
 
 una secuencia de puntos entre () también puede estar precedido por BLO o FLO (back loops only, front loops only).
-ejemplo: BLO(sc 4, inc), FLO(sc 4, inc)
+ejemplo: BLO(sc 4, dc), FLO(sc 4, dc)
 
 Estas secuencias pueden anidarse. Ejemplo: (sc 4, (2dc, sc) in same st, sc 3)x2.
 adicionalmente, pueden anidarse también con FLO y BLO.
-ejemplo: BLO(sc 4, inc, dc 2)x3 es equivalente a BLO((sc 4, inc, dc 3)x3)
-OPCIONAL: () puede ser sustituido por [] (por preferencia y claridad). Ejemplo: [sc 3, inc 2]x2 es lo mismo que (sc 3, inc 2)x2
+ejemplo: BLO(sc 4, inc, dc 2)x3 es equivalente a BLO((sc 4, dc, dc 3)x3)
+OPCIONAL: () puede ser sustituido por [] (por preferencia y claridad). Ejemplo: [sc 3, dc 2]x2 es lo mismo que (sc 3, dc 2)x2
 
 En caso de que una secuencia entre parentesis o corchetes no vaya despues o seguido de uno de los dos modificadores, será equivalente a la misma secuencia sin corchetes.
+
+DISMINUIR
+
+el formato q sigue es punto + número de puntos + tog.
+ejemplo: sc2tog, dc3tog, sc7tog
+ESTOY DISPUESTA A HACERLO ASI: (sc 2)tog SI HACE FALTA
 
 vueltas:
 una vuelta tendrá que empezar por rnd y acabar con un salto de linea. Una linea en blanco entre dos vueltas no tendrá ningun efecto.
@@ -41,8 +47,9 @@ si después de varios turns, se omite al final de una vuelta, se continuará tra
 Los comentarios se podrán poner con // o con #
 
 Problemas a resolver:
-cadenetas
+cadenetas y hacer puntos sobre cadenetas inmediatamente
 skip para saltarse puntos
+slip stitch (punto raso) (q puede saltarse puntos normales)
 
 ambos sería usados como puntos normales.
 
