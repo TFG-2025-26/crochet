@@ -1,11 +1,27 @@
 puntos:
-Sc, Inc, Dc, Hdc, Tc... etc
+Sc, Dc, Hdc, Tc... etc
 
 Cada punto puede estar seguido de un número, y se repetirá ese número de veces. Si no, se asume q es uno
 ejemplo: sc 3
 
 Cada punto está seguido de ,
 ejemplo: sc 3, dc, sc 4. 
+
+puntos especiales:
+SKIP:
+skip se usará con el mismo formato que un punto, y podrá utilizarse para saltarse cualquier número de puntos.
+ejemplo: sc 2, skip 4, sc 3
+
+slst:
+un slip stitch junta la esquina superior del último punto con la esquina superior del siguiente punto, pero no tiene volumen. 
+
+join:
+se puede usar solo al final de una vuelta, para juntar el último punto con el primer punto que no sea una cadeneta
+
+ch:
+una cadeneta se traduce como una arista del ancho de un punto bajo, que puede orientarse tanto horizontal como verticalmente. Pueden hacerse puntos sobre ellas (ver apartado cadenetas)
+
+
 
 Una secuencia de puntos puede estar contenida entre parentésis. Estos parentesis pueden estar afectados por dos modificadores:
 - x número, y se repetirá ese número de veces. Ejemplo: (sc 4, dc 3)x3
@@ -46,13 +62,14 @@ si después de varios turns, se omite al final de una vuelta, se continuará tra
 
 Los comentarios se podrán poner con // o con #
 
-Problemas a resolver:
-cadenetas y hacer puntos sobre cadenetas inmediatamente
-skip para saltarse puntos
-slip stitch (punto raso) (q puede saltarse puntos normales)
-
-ambos sería usados como puntos normales.
+CADENETAS:
+inmediatamente después de una cadeneta, puede usarse insert in 2nd ch para hacer puntos sobre la cadeneta directamente.
 
 
+PROBLEMAS POR RESOLVER: 
+El inicio. hay tres posibilidades:
+chain muchos, y join o no, pero eso da igual.
+ch 2, insert in 2nd from hook, (muchos puntos)in same st.
+q eso ya tenemos soporte para ello dentro de lo q cabe (aunq hay cosas q hacer para hacer la circunferencia).
 
-
+y, por ultimo, mr, ()in mr, q se traduce a magic ring, (muchos puntos) in magic ring
