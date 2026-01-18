@@ -5,6 +5,37 @@
     <title>Vamos a hace un cubo</title>
     <style>
       body { margin: 0; }
+  
+        #panes {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+    }
+    #panes>.left,
+    #panes>.right {
+      flex: 1 1 50%;
+      height: 100%;
+    }
+
+    #panes>.right {
+      padding: 1em;
+      text-align: center;
+      background: red;
+    }
+
+    #panes>.left {
+      padding: 1em;
+      background: blue;
+      color: white;
+    }
+ 
+
+     textarea {
+        overflow-y: scroll;
+        height: 600px;
+        width: 600px;
+        resize: none; /* Remove this if you want the user to resize the textarea */
+    }
     </style>
     <script type="importmap">
 {
@@ -16,7 +47,17 @@
 </script>
   </head>
   <body>
-    <script type="module" src="/main.js"></script>
-     <script type="module" src="Main_svg.js"></script>
+    <div id = "panes">
+      <div class = "left"><p> patron aqui porfa</p> 
+        <textarea id="w3review" name="w3review" rows="4" cols="50">
+          Q divertido es el ganchillo yuju
+       </textarea>
+      </br>
+        <button onclick="getValue()">Teje!</button></div> 
+      <div class = "right"><script type="module" src="/main.js"></script></div> 
+  
+    </div>
+    
+    <script type="module" src="Main_svg.js"></script>
   </body>
 </html>
