@@ -3,7 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Const } from 'three/tsl';
 
 const CH_SIZE = 1;
-const SIZE_X = 5; //ancho de un punto. constante.
+const SIZE_X = 3; //ancho de un punto. constante.
 
 
 const scene = new THREE.Scene();    //creamos la escena
@@ -53,7 +53,19 @@ function generateMesh()
   const rounds = value.split("\n");
   
   //empezamos a generar la mesh (posiblemente sea mejor hacerlo en dos pasos)
+  const geometry = new THREE.BufferGeometry();
+  var positions = [];
+  var indices = [];
   var puntosIN = 0;
+  var actPunto = 1;
+
+  //PUNTO DE PARTIDA TEMPORAL /////////
+  positions.push(0, 0, 0);  //esquina inferior izquierda
+      
+  positions.push(0, CH_SIZE, 0);  //esquina superior izquierda
+      
+  //////////////////
+
   for (var i = 0; i < rounds.length; i++)
   {
     
@@ -105,13 +117,33 @@ function generateMesh()
 
           for (var k = 0; k < repeat; k++)
           {
-            const geometry = new THREE.BoxGeometry( SIZE_X * repeat, sizeY, 1);
-            const material = new THREE.MeshPhongMaterial( { color: 0x00ff00 } );  //aqui se asigna el color
-            const cube = new THREE.Mesh( geometry, material );
-            scene.add( cube );
+            //por ahora no tengo nada en cuenta el desplazamiento entre vueltas ni nada osea esto funciona con solo una vuelta.
+            //asumimos q tenemos ya hecha la esquina inferior y superior izquierda (por ahora)
+            
+            positions.push(SIZE_X* (actPunto), 0, 0); //esquina inferior derecha      //esto tenemos q cambiarlo si o si
+          
+            positions.push(SIZE_X* (actPunto), sizeY, 0);   //esquina superior derecha
+
+            //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
+            indices.push(actPunto*2 -2);  //prev bottom
+            indices.push(actPunto*2 -1);   //prev top
+            indices.push(actPunto*2);     //act botom
+
+            //segundo tringulo
+            indices.push(actPunto*2-1); //prev top
+            indices.push(actPunto*2 +1);  //act top
+            indices.push(actPunto*2);   //act bottom
+            
+
+
+            //const geometry = new THREE.BoxGeometry( SIZE_X * repeat, sizeY, 1);
+            //const material = new THREE.MeshPhongMaterial( { color: 0x00ff00 } );  //aqui se asigna el color
+            //const cube = new THREE.Mesh( geometry, material );
+            //scene.add( cube );
+            puntosOut++;
+            actPunto++;
           }
 
-          puntosIN += repeat;  //TODO ESTO HAY Q REVISARLO PARA ()TOG ETC ETC;
           
           
         }
@@ -122,5 +154,22 @@ function generateMesh()
     }
 
   }
+
+  //añadimos nuestra geometria
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
+      geometry.setIndex(indices);
+      
+      //geometry.computeVertexNormals();
+
+      const material = new THREE.MeshBasicMaterial({
+  color: 0x00ff00,
+  wireframe: true,
+  side: THREE.DoubleSide,
+  depthTest: false
+});
+
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
 
 }
