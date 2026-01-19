@@ -44,19 +44,21 @@ function animate() {
 renderer.setAnimationLoop( animate ); //claro, por eso creamos un método para renderizar nuestro cubo
 document.getElementById("knitBtn").addEventListener("click", generateMesh);
 
+
+//ahora mismo el la cosa mas tocha de la galaxia. Tiene espacio de mejora.
 function generateMesh()
 {
   var value = document.getElementById("input").value;
+  value = value.toLowerCase();
   const rounds = value.split("\n");
   
+  //empezamos a generar la mesh (posiblemente sea mejor hacerlo en dos pasos)
   var puntosIN = 0;
   for (var i = 0; i < rounds.length; i++)
   {
     
-    const stitches = rounds[i].split(" ");
-    //alert(rounds[i]);
-    
-    //si no es una linea vacia
+    const stitches = rounds[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
+ 
     if(stitches.length > 0)
     {
       if(stitches.lenght < 2 || stitches[0] != "rnd" || stitches[1] != i+1)
@@ -66,48 +68,56 @@ function generateMesh()
       }
 
       //procesamos la linea correctamente
-      else{
-        var puntosOut = 0;
-        
-        //esto podría ser más limpio pero no me importa mucho por ahora
-        if(stitches.length > 4 && stitches[2] == "-")
+      var puntosOut = 0;
+      
+      //esto podría ser más limpio pero no me importa mucho por ahora
+      if(stitches.length > 4 && stitches[2] == "-")
+      {
+        //aqui hacemos cosas de repetir vueltas, lo q sea
+      }
+      else
+      {
+        //a esto tengo q darle una vuelta para q sea mas limpio
+        var j = 2;
+        while (j < stitches.length)
         {
-          //aqui hacemos cosas de repetir vueltas, lo q sea
-        }
-        else
-        {
-          //a esto tengo q darle una vuelta para q sea mas limpio
-          var j = 2;
-          while (j < stitches.length)
+          var sizeY;
+          switch (stitches[j])
           {
-            var sizeY;
-            switch (stitches[j])
-            {
-              case "ch":
-                sizeY = CH_SIZE;
-                break;
+            case "ch":
+              sizeY = CH_SIZE;
+              break;
 
-                default:
-                  alert("Punto no reconocido en vuelta " + (i+1) + ": " + stitches[j] + ". Revise los puntos aceptados.");
-                  return;
 
-            }
+              default:
+                alert("Punto no reconocido en vuelta " + (i+1) + ": " + stitches[j] + ". Revise los puntos aceptados.");
+                return;
 
-            j++;
-            for (var k = 0; k < stitches[j]; k++)
-            {
-              const geometry = new THREE.BoxGeometry( SIZE_X, sizeY, 1);
-              const material = new THREE.MeshPhongMaterial( { color: 0x00ff00 } );  //aqui se asigna el color
-              const cube = new THREE.Mesh( geometry, material );
-              scene.add( cube );
+          }
 
-            }
-            puntosIN -= stitches[j];  //TODO ESTO HAY Q REVISARLO PARA ()TOG ETC ETC;
+          j++;
+          var repeat = 1;
+          if(parseInt(stitches[j],10).toString()===stitches[j]) //esto es una manera fancy de comprobar q es un numero
+          {
+            repeat = stitches[j];
             j++;
           }
-        }
 
+          for (var k = 0; k < repeat; k++)
+          {
+            const geometry = new THREE.BoxGeometry( SIZE_X * repeat, sizeY, 1);
+            const material = new THREE.MeshPhongMaterial( { color: 0x00ff00 } );  //aqui se asigna el color
+            const cube = new THREE.Mesh( geometry, material );
+            scene.add( cube );
+          }
+
+          puntosIN += repeat;  //TODO ESTO HAY Q REVISARLO PARA ()TOG ETC ETC;
+          
+          
+        }
       }
+
+      
       puntosIN = puntosOut;
     }
 
