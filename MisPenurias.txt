@@ -1,0 +1,26 @@
+Esto son las penurias q había antes en el overleaf, quitadas del overleaf xq ahí no pintan nada pero conservadas en este .txt. 
+
+Primer martirio: 
+
+medskip \medskip \medskip
+Bueno mira te cuento mi martirio preparate.
+Lo malo de three.js esq necesitas crear un servidor. nuestra querida página de documentación por suerte tiene un tutorial de como hacerlo (https://threejs.org/manual/installation) \todo{a mi me da un error 404} PERO ES MENTIRA ES COMPLETAMENTE MENTIRA porq primero de todo es para Node, y a mi me gustaría usar visual studio code, q fue lo q usamos en PVLI. Y segundo, no te enseña NADA es terrible.
+
+Por suerte, tiene una duda en el foro (https://discourse.threejs.org/t/help-getting-set-up-with-vscode-and-three-js/19606) SIN EMBARGO AQUI LA GENTE SABE MUCHO YO NO SÉ NI EMPEZAR EL SERVIDOR ME CAGÜEN.
+
+\medskip En definitiva q todo el mundo está usando node.js y me da mucha pereza instalármelo pero voy a tener q hacerlo xq no hay nada para visual studio code tio. A pesar de q se puede y es con lo q estoy familiarizada. No se puede aparentemente.
+
+\medskip También he encontrado este recurso: \href{https://github.com/dgreenheck/my-first-threejs-project}{aqui}, q es un proyecto simple de github pero no sé si puedo usarlo.
+
+\medskip De guias he encontrado https://discoverthreejs.com/book/first-steps/app-structure/ y la oficial de three.js mencionado anteriormente. La primera asume q sabes mucho menos de HTML y CSS y te da más guia, la segunda confia en q controlas.
+
+\medskip le he preguntado a Toni, el profe de PVLI, y me ha dicho q para página web lo único razonable es Javascript lamentablemente. Lo cual me enfada mucho no voy a mentir.
+
+\medskip \medskip Respecto a svg.js, he encontrado un tutorial de W3schools, q es una página web q me gusta mucho (\href{https://www.w3schools.com/graphics/svg_intro.asp}{aqui}), lo cual me alegra mucho. También tienen una guia oficial, \href{https://svgjs.dev/docs/3.2/getting-started/}{aqui}, pero no me gusta tanto. SVG.js parece bastante fácil.
+
+\medskip \medskip Respecto a integración de SVG.js y three.js, tenemos en three el SVGLoader para cargar archivos .svg. Lo q no me queda claro es si SVG.js genera archivos .svg. La guia oficial de three: https://threejs.org/docs/#examples/en/loaders/SVGLoader. Creo q podemos hacer dos canvas y ponerlos uno encima del otro, o si lo preferimos, convertir de svg a objetos reales, pero creo q no queremos eso. NO PUEDEN COMPARTIR CANVAS XQ ESTÁN EN COSAS DIFERENTES. Three.js usa webGL mientras q SVG.js usa SVG DOM. osea q nuestras opciones son esas. Layering de canvas. O transformar de vectoriales a modelos 3d normales, lo q es una tonteria.
+
+COMENTARIO SOBRE EL PRIMER MARTIRIO
+
+la Eri del pasado es tonta y no sabe q node.js no es un editor de código. Es tonta la pobre. Siguió el tutorial y consiguió montar su servidor xq no es tan difícil. Menuda tonta.
+

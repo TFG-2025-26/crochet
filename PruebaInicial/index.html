@@ -20,12 +20,12 @@
     #panes>.right {
       padding: 1em;
       text-align: center;
-      background: red;
+      background: GhostWhite;
     }
 
     #panes>.left {
       padding: 1em;
-      background: blue;
+      background: MediumOrchid;
       color: white;
     }
  
@@ -45,19 +45,20 @@
   }
 }
 </script>
+<script type="module" src="/main.js"></script>
   </head>
   <body>
     <div id = "panes">
       <div class = "left"><p> patron aqui porfa</p> 
-        <textarea id="w3review" name="w3review" rows="4" cols="50">
+        <textarea id="input" name="input">
           Q divertido es el ganchillo yuju
        </textarea>
       </br>
-        <button onclick="getValue()">Teje!</button></div> 
-      <div class = "right"><script type="module" src="/main.js"></script></div> 
+        <button id="knitBtn" style="background-color: BlueViolet; color: white; border-color: BlueViolet;">Teje!</button></div> 
+      <div class = "right"></div> 
   
     </div>
     
-    <script type="module" src="Main_svg.js"></script>
+    <!-- <script type="module" src="Main_svg.js"></script>  -->
   </body>
 </html>
