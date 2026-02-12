@@ -2,10 +2,23 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Const } from 'three/tsl';
 
-const CH_SIZE = 1;
-const SIZE_X = 3; //ancho de un punto. constante.
+const SIZE_X = 1; //ancho de un punto. constante.
+
+const SIZES_Y ={
+  "ch" : 0.2,
+  "sc" : 1,
+  "dc" : 2
+}
+
+const TURN = "turn";
+const JOIN = "join";
+const MAGICRING = "mr";
+
+const DIRECTION = Object.freeze({AV: 1, RET: -1});
+var curr_direction;
 
 
+////////////INICIALIZACIÓN DE TODO/////////////
 const scene = new THREE.Scene();    //creamos la escena
 const camera = new THREE.PerspectiveCamera( 75, window.innerWidth/2 / window.innerHeight, 0.1, 1000 );    //creamos la cámara
                                         //( field of view,  aspect ratio, near and far clipping)
@@ -35,7 +48,6 @@ scene.add(light);
 
 camera.position.z = 5;
 
-
 function animate() {
   controls.update();
 
@@ -45,122 +57,95 @@ renderer.setAnimationLoop( animate ); //claro, por eso creamos un método para r
 document.getElementById("knitBtn").addEventListener("click", generateMesh);
 
 
+
+//////////////////////////////////////////LO Q SE EJECUTA CADA VEZ Q GENERAMOS LA MESH///////////////////////////////////////////////////
+
+
+
 //ahora mismo el la cosa mas tocha de la galaxia. Tiene espacio de mejora.
 function generateMesh()
 {
   var value = document.getElementById("input").value;
   value = value.toLowerCase();
-  const rounds = value.split("\n");
+  const rounds = processRounds(value);
+
+  if (rounds == -1) //si ha habido cualquier error, paramos
+  {
+    return;
+  }
   
   //empezamos a generar la mesh (posiblemente sea mejor hacerlo en dos pasos)
   const geometry = new THREE.BufferGeometry();
   var positions = [];
   var indices = [];
-  var puntosIN = 0;
-  var actPunto = 1;
 
-  //PUNTO DE PARTIDA TEMPORAL /////////
-  positions.push(0, 0, 0);  //esquina inferior izquierda
-      
-  positions.push(0, CH_SIZE, 0);  //esquina superior izquierda
-      
-  //////////////////
+  var roundInfo =
+  {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0}
 
-  for (var i = 0; i < rounds.length; i++)
+  //hacemos la primera vuelta:
+  if(rounds[0][0] == MAGICRING)
   {
-    
-    const stitches = rounds[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
- 
-    if(stitches.length > 0)
+    //por ahora pues nada
+
+  }
+
+  else  //si no es un mr, tienen q ser cadenetas
+  {
+    positions.push(0, 0, 0);  //esquina inferior izquierda
+    positions.push(0, SIZES_Y["ch"], 0);  //esquina superior izquierda
+    roundInfo.currRoundOUT = 1;
+
+    const stitches = rounds[0] 
+    for(i = 0; i < stitches.length; i++)
     {
-      if(stitches.lenght < 2 || stitches[0] != "rnd" || stitches[1] != i+1)
-      {
-        alert("Formato incorrecto en la vuelta " + (i+1) + ". Debería empezar por rnd " + (i+1) + ". Revise el fomato de linea.");
-        return;
-      }
-
-      //procesamos la linea correctamente
-      var puntosOut = 0;
+      var sizeY  = SIZES_Y[stitches[i]];  //por ahora está asi pero asumimos q son cadenetas
       
-      //esto podría ser más limpio pero no me importa mucho por ahora
-      if(stitches.length > 4 && stitches[2] == "-")
-      {
-        //aqui hacemos cosas de repetir vueltas, lo q sea
-      }
-      else
-      {
-        //a esto tengo q darle una vuelta para q sea mas limpio
-        var j = 2;
-        while (j < stitches.length)
-        {
-          var sizeY;
-          switch (stitches[j])
-          {
-            case "ch":
-              sizeY = CH_SIZE;
-              break;
 
+      positions.push(SIZE_X* (roundInfo.currRoundOUT), 0, 0); //esquina inferior derecha      //esto tenemos q cambiarlo si o si
+      positions.push(SIZE_X* (roundInfo.currRoundOUT), sizeY, 0);   //esquina superior derecha
 
-              default:
-                alert("Punto no reconocido en vuelta " + (i+1) + ": " + stitches[j] + ". Revise los puntos aceptados.");
-                return;
+      //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
+      indices.push(roundInfo.currRoundOUT*2 -2);  //prev bottom
+      indices.push(roundInfo.currRoundOUT*2 -1);   //prev top
+      indices.push(roundInfo.currRoundOUT*2);     //act botom
 
-          }
+      //segundo tringulo
+      indices.push(roundInfo.currRoundOUT*2-1); //prev top
+      indices.push(roundInfo.currRoundOUT*2 +1);  //act top
+      indices.push(roundInfo.currRoundOUT*2);   //act bottom
 
-          j++;
-          var repeat = 1;
-          if(parseInt(stitches[j],10).toString()===stitches[j]) //esto es una manera fancy de comprobar q es un numero
-          {
-            repeat = stitches[j];
-            j++;
-          }
+      roundInfo.currRoundOUT++;
 
-          for (var k = 0; k < repeat; k++)
-          {
-            //por ahora no tengo nada en cuenta el desplazamiento entre vueltas ni nada osea esto funciona con solo una vuelta.
-            //asumimos q tenemos ya hecha la esquina inferior y superior izquierda (por ahora)
-            
-            positions.push(SIZE_X* (actPunto), 0, 0); //esquina inferior derecha      //esto tenemos q cambiarlo si o si
-          
-            positions.push(SIZE_X* (actPunto), sizeY, 0);   //esquina superior derecha
-
-            //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
-            indices.push(actPunto*2 -2);  //prev bottom
-            indices.push(actPunto*2 -1);   //prev top
-            indices.push(actPunto*2);     //act botom
-
-            //segundo tringulo
-            indices.push(actPunto*2-1); //prev top
-            indices.push(actPunto*2 +1);  //act top
-            indices.push(actPunto*2);   //act bottom
-            
-
-
-            //const geometry = new THREE.BoxGeometry( SIZE_X * repeat, sizeY, 1);
-            //const material = new THREE.MeshPhongMaterial( { color: 0x00ff00 } );  //aqui se asigna el color
-            //const cube = new THREE.Mesh( geometry, material );
-            //scene.add( cube );
-            puntosOut++;
-            actPunto++;
-          }
-
-          
-          
-        }
-      }
-
-      
-      puntosIN = puntosOut;
     }
 
   }
 
+
+  for (var i = 1; i < rounds.length; i++)
+  {
+    
+    const stitches = rounds[i]
+
+    //a esto tengo q darle una vuelta para q sea mas limpio
+    var j = 0;
+    while (j < stitches.length)
+    {
+      //esto habrá q cambiarlo cuand haya parentesis y todo eso. 
+      //habrá q meter un switch guapardod
+
+      //actPunto++;
+      j++;
+      
+    }
+    
+  }
+
+  
+
   //añadimos nuestra geometria
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
 
-      geometry.setIndex(indices);
-      
-      //geometry.computeVertexNormals();
+    geometry.setIndex(indices);
 
       const material = new THREE.MeshBasicMaterial({
   color: 0x00ff00,
@@ -170,6 +155,98 @@ function generateMesh()
 });
 
 const mesh = new THREE.Mesh(geometry, material);
+scene.clear();
 scene.add(mesh);
 
 }
+
+//METODO PARA PROCESAR LAS VUELTAS, POR AHORA MUY SIMPLE Y TONTO, PARA QUITAR LOS SIGINIFANTES RND Y REPETIR LAS VUELTAS UN NUMERO CORRECTO DE VECES
+function processRounds(input)
+{
+  //TODO: AÑADIR COMPROBACIÓN DE Q LA PRIMERA VUELTA ES VÁLIDA
+  var roundsIN = input.split("\n");
+  var roundsOUT = [];
+  var nVueltas = 0;
+  var errorFound = false; var i = 0;
+  while (i < roundsIN.length && !errorFound)
+  {
+    var puntosIN =  roundsIN[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
+
+   if(puntosIN.length > 0)
+    {
+      nVueltas++;
+      var nReps = 1;
+      var nRndWords = 2;
+      if(puntosIN.length < 2 || puntosIN[0] != "rnd" || puntosIN[1] != nVueltas) //TODO: convertir en while chulo bonito etc
+      {
+        alert("Formato incorrecto en la vuelta " + nVueltas + ". Debería empezar por \"rnd " + nVueltas + "\". Revise el fomato de linea.");
+        errorFound = true;
+      }
+      
+      //vemos si son varias vueltas:
+      if (puntosIN.length > 4 && puntosIN[2] == "-")
+      {
+        if(! parseInt(puntosIN[3],10).toString()===puntosIN[3] && puntosIN[3] > nVueltas)
+        {
+          alert("Formato incorrecto en la vuelta " + nVueltas + ". Revise el uso de guiones (-)."); //TODO: convertir en un while bonito
+          errorFound = true;
+        }
+        nReps = puntosIN[3] - nVueltas +1;
+        nRndWords = 4;
+
+      }
+
+
+      if(!errorFound)
+      {
+        //traducimos la vuelta
+        var puntosOut = [];
+        var j = nRndWords;
+        while (j < puntosIN.length && !errorFound)
+        {
+          if (!(puntosIN[j] in SIZES_Y))
+          {
+            alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
+            errorFound = true;
+          }
+
+          else
+          {
+            var repeat = 1;
+            var st = puntosIN[j];
+            j++;
+            if(parseInt(puntosIN[j],10).toString()===puntosIN[j]) //esto es una manera fancy de comprobar q es un numero
+            {
+              repeat = parseInt(puntosIN[j], 10);
+              j++;
+
+            }
+            puntosOut.push(...Array(repeat).fill(st)); //metemos el punto ese numero de veces
+          }
+        }
+        
+        //si son varias vueltas:
+        for(j = 0; j < nReps; j++)
+        {
+          roundsOUT.push(puntosOut.slice());
+        }
+      
+      
+      }
+
+    }
+    i++
+
+    
+  }
+
+  if(!errorFound)
+  {
+    console.log(roundsOUT);
+    return roundsOUT;
+  }
+    
+  else
+    return -1;
+}
+

@@ -24,3 +24,5 @@ COMENTARIO SOBRE EL PRIMER MARTIRIO
 
 la Eri del pasado es tonta y no sabe q node.js no es un editor de código. Es tonta la pobre. Siguió el tutorial y consiguió montar su servidor xq no es tan difícil. Menuda tonta.
 
+LUIS Y YO HEMOS TENIDO UN BREAKTHROUGH podemos usar las normales de los vértices para suavizar las curvas generadas por el crecimiento de puntos. muy importante. q no se me olvide
+

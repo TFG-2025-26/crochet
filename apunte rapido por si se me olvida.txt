@@ -1,0 +1,11 @@
+\textit{
+\newline crochetlathe usa perl y jquery \newline
+crochetparade usa  SVG.js, three.js and PrismJS, bibliotecas de javascript.\newline
+automatic crochet pattern from 2d sketich usa  C++ y OpenGL.\newline
+los de AmiGo usan Matlab and C++. \newline
+la cosa de github usa python, con las librerías libigl y vedo pygeodesic y meshplot \newline
+No he encontrado lo q usan los de knitting skeletons pero me la pela bastante no voy a mentir\newline
+No he encontrado lo q usan los de computing stitches tampoco (pero email)\newline
+Aqui nadie me pone lo q usa, Yuskel tampoco tio (pero le he escrito un email)\newline
+Los de topology based modelling and usado Python 3 con pytexlib. Usan muchas cosas hechas por TexMind\newline
+Los q intentan hacerlo a máquina son muy majos y dicen q Python  3, SymPy, NumPy, pytexlib  [37]  is  applied  for describing and saving the modelled textiles. The TexMind viewer [28] is used to visualise the models. Results are plotted using the Matplotlib library.\newline }
