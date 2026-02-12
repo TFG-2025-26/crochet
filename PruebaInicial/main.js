@@ -13,6 +13,7 @@ const SIZES_Y ={
 const TURN = "turn";
 const JOIN = "join";
 const MAGICRING = "mr";
+const CH = "ch";
 
 const DIRECTION = Object.freeze({AV: 1, RET: -1});
 var curr_direction;
@@ -69,7 +70,7 @@ function generateMesh()
   value = value.toLowerCase();
   const rounds = processRounds(value);
 
-  if (rounds == -1) //si ha habido cualquier error, paramos
+  if (rounds == -1) //si ha habido un error en el preprocesado, paramos
   {
     return;
   }
@@ -80,7 +81,7 @@ function generateMesh()
   var indices = [];
 
   var roundInfo =
-  {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0}
+  {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0, chainsToPlace : 0}
 
   //hacemos la primera vuelta:
   if(rounds[0][0] == MAGICRING)
@@ -91,17 +92,66 @@ function generateMesh()
 
   else  //si no es un mr, tienen q ser cadenetas
   {
-    positions.push(0, 0, 0);  //esquina inferior izquierda
-    positions.push(0, SIZES_Y["ch"], 0);  //esquina superior izquierda
-    roundInfo.currRoundOUT = 1;
+    roundInfo.currRoundOUT = 0;
+    const stitches = rounds[0]
 
-    const stitches = rounds[0] 
-    for(i = 0; i < stitches.length; i++)
+    //primero toda la capa de abajo
+    for (var i = 0; i < stitches.length+1; i++) {
+      positions.push(SIZE_X * i, 0, 0);
+    }
+
+    //la capa de arriba (para q tenga sentido en nuestra arquitectura)
+    for (var i = 0; i < stitches.length+1; i++) {
+      positions.push(SIZE_X * i, SIZES_Y[CH], 0);
+    }
+     
+    //y ahora los indexamos todos
+    for(var i = 0; i < stitches.length; i++)
     {
-      var sizeY  = SIZES_Y[stitches[i]];  //por ahora está asi pero asumimos q son cadenetas
-      
+      const b0 = i;
+      const b1 = i + 1;
+      const t0 = i + stitches.length+1;
+      const t1 = i + 1 + stitches.length+1;
 
-      positions.push(SIZE_X* (roundInfo.currRoundOUT), 0, 0); //esquina inferior derecha      //esto tenemos q cambiarlo si o si
+      indices.push(b0, t0, b1);
+      indices.push(t0, t1, b1);
+
+      roundInfo.currRoundOUT++;
+      //TODO comprobamos si el último punto es turn o join, lo cual de hecho ya lo sabemos
+    }
+
+  }
+
+
+  for (var i = 1; i < rounds.length; i++)
+  {    
+    const stitches = rounds[i]
+
+    //AQUI TEMPORALMENTE HASTA Q PODAMOS USAR CADENETAS BIEN
+    positions.push(0, SIZES_Y[stitches[0]], 0);  //esquina superior izquierda
+    
+    
+    roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
+    currRoundOUT = 0;
+    var j = 0;
+    while (j < stitches.length)
+    {
+      switch (stitches[j])
+      {
+        case CH:
+          roundInfo.chainsToPlace ++;
+
+        default:
+          break;
+      }
+
+      //si es un punto, vemos primero si tenemos alguna cadeneta q resolver
+      if(roundInfo.chainsToPlace != 0)
+      {
+          //por ahora nada
+      }
+
+      //anyways, hacemos nuestros triangulos
       positions.push(SIZE_X* (roundInfo.currRoundOUT), sizeY, 0);   //esquina superior derecha
 
       //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
@@ -114,26 +164,6 @@ function generateMesh()
       indices.push(roundInfo.currRoundOUT*2 +1);  //act top
       indices.push(roundInfo.currRoundOUT*2);   //act bottom
 
-      roundInfo.currRoundOUT++;
-
-    }
-
-  }
-
-
-  for (var i = 1; i < rounds.length; i++)
-  {
-    
-    const stitches = rounds[i]
-
-    //a esto tengo q darle una vuelta para q sea mas limpio
-    var j = 0;
-    while (j < stitches.length)
-    {
-      //esto habrá q cambiarlo cuand haya parentesis y todo eso. 
-      //habrá q meter un switch guapardod
-
-      //actPunto++;
       j++;
       
     }
