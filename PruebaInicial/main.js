@@ -160,7 +160,7 @@ function generateMesh()
   for (var i = 1; i < rounds.length; i++)
   {    
     const stitches = rounds[i]
-    
+    closed.isClosed = false;
     
     roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
     roundInfo.currRoundIN = 0;
