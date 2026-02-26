@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Const, round } from 'three/tsl';
+import { TSL } from 'three/webgpu';
 
 const SIZE_X = 1; //ancho de un punto. constante.
 
@@ -16,6 +17,7 @@ const MAGICRING = "mr";
 const CH = "ch";
 const SKIP = "skip";
 
+var closed = {isClosed: false, radious: 0};
 const DIRECTION = Object.freeze({AV: 1, RET: -1});
 var curr_direction = DIRECTION.RET;
 
@@ -69,7 +71,9 @@ function generateMesh()
 {
   var value = document.getElementById("input").value;
   value = value.toLowerCase();
+  
   const rounds = processRounds(value);
+  console.log(closed);
 
   if (rounds == -1) //si ha habido un error en el preprocesado, paramos
   {
@@ -96,15 +100,43 @@ function generateMesh()
     roundInfo.currRoundOUT = 0;
     const stitches = rounds[0]
 
-    //primero toda la capa de abajo
-    for (var i = 0; i < stitches.length+1; i++) {
-      positions.push(SIZE_X * i, 0, 0);
+    if (!closed.isClosed)
+    {
+        //primero toda la capa de abajo
+      for (var i = 0; i < stitches.length+1; i++) {
+        positions.push(SIZE_X * i, 0, 0);
+      }
+
+      //la capa de arriba (para q tenga sentido en nuestra arquitectura)
+      for (var i = 0; i < stitches.length+1; i++) {
+        positions.push(SIZE_X * i, SIZES_Y[CH], 0);
+      }
+
+    }
+    else  //los colocamos en circulo
+    {
+      var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
+
+      //primero toda la capa de abajo
+      for (var i = 0; i < stitches.length+1; i++) {
+        var ang = i * theta;
+        var x = closed.radious * Math.cos(ang);
+        var z = closed.radious * Math.sin(ang);
+        positions.push(x, 0, z);
+      }
+
+      //la capa de arriba (para q tenga sentido en nuestra arquitectura)
+      for (var i = 0; i < stitches.length+1; i++) {
+        var ang = i * theta;
+        var x = closed.radious * Math.cos(ang);
+        var z = closed.radious * Math.sin(ang);
+        positions.push(x, SIZES_Y[CH], z);
+      }
+      console.log(closed.radious)
+
     }
 
-    //la capa de arriba (para q tenga sentido en nuestra arquitectura)
-    for (var i = 0; i < stitches.length+1; i++) {
-      positions.push(SIZE_X * i, SIZES_Y[CH], 0);
-    }
+    
      
     //y ahora los indexamos todos
     for(var i = 0; i < stitches.length; i++)
@@ -196,8 +228,6 @@ function generateMesh()
 
       positions.push(x, y + SIZES_Y[stitches[j]], z);
       var actTop = positions.length/3 - 1;
-      console.log(prevBotom1)
-      console.log(prevBotom2)
 
       //anyways, hacemos nuestros triangulos
 
@@ -221,7 +251,6 @@ function generateMesh()
     
   }
 
-  console.log(positions);
   
 
   //añadimos nuestra geometria
@@ -250,6 +279,7 @@ function processRounds(input)
   var roundsOUT = [];
   var nVueltas = 0;
   var errorFound = false; var i = 0;
+  
 
   var roundInfo = {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0};
   while (i < roundsIN.length && !errorFound)
@@ -292,10 +322,25 @@ function processRounds(input)
         var j = nRndWords;
         while (j < puntosIN.length && !errorFound)
         {
-          if (!(puntosIN[j] in SIZES_Y))
+          if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN)
           {
             alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
             errorFound = true;
+          }
+          else if(puntosIN[j]== JOIN)
+          {
+            if (j < puntosIN.length -1)
+            {
+              alert("Error en la vuelta: " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
+              errorFound = true;
+            }
+            else if (!closed.isClosed)  //calculamos el radio
+            {
+              closed.isClosed = true;
+              closed.radious = SIZE_X / (2 * Math.sin(Math.PI /roundInfo.currRoundOUT)) 
+              console.log(closed.radious);
+            }
+            j++;
           }
 
           else
