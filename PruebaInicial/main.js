@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Const } from 'three/tsl';
+import { Const, round } from 'three/tsl';
 
 const SIZE_X = 1; //ancho de un punto. constante.
 
@@ -14,9 +14,10 @@ const TURN = "turn";
 const JOIN = "join";
 const MAGICRING = "mr";
 const CH = "ch";
+const SKIP = "skip";
 
 const DIRECTION = Object.freeze({AV: 1, RET: -1});
-var curr_direction;
+var curr_direction = DIRECTION.RET;
 
 
 ////////////INICIALIZACIÓN DE TODO/////////////
@@ -123,17 +124,25 @@ function generateMesh()
   }
 
 
+  //y ahora hacemos el resto de vueltas
   for (var i = 1; i < rounds.length; i++)
   {    
     const stitches = rounds[i]
-
-    //AQUI TEMPORALMENTE HASTA Q PODAMOS USAR CADENETAS BIEN
-    positions.push(0, SIZES_Y[stitches[0]], 0);  //esquina superior izquierda
     
     
     roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
-    currRoundOUT = 0;
+    roundInfo.currRoundIN = 0;
+    roundInfo.currRoundOUT = 0;
     var j = 0;
+    var firstInRound;
+    if(curr_direction == DIRECTION.AV)
+    {
+      firstInRound = positions.length/3 - roundInfo.prevRoundOUT;
+    }
+    else
+    {
+      firstInRound =  positions.length/3;
+    }
     while (j < stitches.length)
     {
       switch (stitches[j])
@@ -146,30 +155,73 @@ function generateMesh()
       }
 
       //si es un punto, vemos primero si tenemos alguna cadeneta q resolver
-      if(roundInfo.chainsToPlace != 0)
+      if(stitches[j] != CH && roundInfo.chainsToPlace != 0)
       {
           //por ahora nada
       }
 
+      var prevBotom1 = 0;
+      var prevBotom2 = 0;
+      if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
+      {
+        //vemos cual es el siguiente punto
+        var prevBotom1 = firstInRound + roundInfo.currRoundIN -1;
+        var prevBotom2 = prevBotom1 + 1;
+      }
+      else
+      {
+        var prevBotom1 = firstInRound - roundInfo.currRoundIN -1;
+        var prevBotom2 = prevBotom1 - 1;
+      }
+
+      if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
+      {
+        const baseIndex = prevBotom1 * 3;
+
+        const x = positions[baseIndex];
+        const y = positions[baseIndex + 1];
+        const z = positions[baseIndex + 2];
+
+        positions.push(x, y + SIZES_Y[stitches[j]], z);
+      }
+
+      var prevtop = positions.length/3 - 1;
+
+      //y ahora ponemos nuestro vertice
+      const baseIndex = prevBotom2 * 3;
+
+      const x = positions[baseIndex];
+      const y = positions[baseIndex + 1];
+      const z = positions[baseIndex + 2];
+
+      positions.push(x, y + SIZES_Y[stitches[j]], z);
+      var actTop = positions.length/3 - 1;
+      console.log(prevBotom1)
+      console.log(prevBotom2)
+
       //anyways, hacemos nuestros triangulos
-      positions.push(SIZE_X* (roundInfo.currRoundOUT), sizeY, 0);   //esquina superior derecha
 
       //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
-      indices.push(roundInfo.currRoundOUT*2 -2);  //prev bottom
-      indices.push(roundInfo.currRoundOUT*2 -1);   //prev top
-      indices.push(roundInfo.currRoundOUT*2);     //act botom
+      indices.push(prevBotom1);  //prev bottom
+      indices.push(prevtop);   //prev top
+      indices.push(prevBotom2);     //act botom
 
       //segundo tringulo
-      indices.push(roundInfo.currRoundOUT*2-1); //prev top
-      indices.push(roundInfo.currRoundOUT*2 +1);  //act top
-      indices.push(roundInfo.currRoundOUT*2);   //act bottom
+      indices.push(prevtop); //prev top
+      indices.push(actTop);  //act top
+      indices.push(prevBotom2);   //act bottom
 
       j++;
+
+      //y añadimos los puntos
+      roundInfo.currRoundIN ++;
+      roundInfo.currRoundOUT ++;
       
     }
     
   }
 
+  console.log(positions);
   
 
   //añadimos nuestra geometria
@@ -198,6 +250,8 @@ function processRounds(input)
   var roundsOUT = [];
   var nVueltas = 0;
   var errorFound = false; var i = 0;
+
+  var roundInfo = {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0};
   while (i < roundsIN.length && !errorFound)
   {
     var puntosIN =  roundsIN[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
@@ -207,7 +261,7 @@ function processRounds(input)
       nVueltas++;
       var nReps = 1;
       var nRndWords = 2;
-      if(puntosIN.length < 2 || puntosIN[0] != "rnd" || puntosIN[1] != nVueltas) //TODO: convertir en while chulo bonito etc
+      if(puntosIN.length < 2 || puntosIN[0] != "rnd" || puntosIN[1] != nVueltas)
       {
         alert("Formato incorrecto en la vuelta " + nVueltas + ". Debería empezar por \"rnd " + nVueltas + "\". Revise el fomato de linea.");
         errorFound = true;
@@ -218,7 +272,7 @@ function processRounds(input)
       {
         if(! parseInt(puntosIN[3],10).toString()===puntosIN[3] && puntosIN[3] > nVueltas)
         {
-          alert("Formato incorrecto en la vuelta " + nVueltas + ". Revise el uso de guiones (-)."); //TODO: convertir en un while bonito
+          alert("Formato incorrecto en la vuelta " + nVueltas + ". Revise el uso de guiones (-).");
           errorFound = true;
         }
         nReps = puntosIN[3] - nVueltas +1;
@@ -229,6 +283,10 @@ function processRounds(input)
 
       if(!errorFound)
       {
+        roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
+        roundInfo.currRoundIN = 0;
+        roundInfo.currRoundOUT = 0;
+
         //traducimos la vuelta
         var puntosOut = [];
         var j = nRndWords;
@@ -252,6 +310,22 @@ function processRounds(input)
 
             }
             puntosOut.push(...Array(repeat).fill(st)); //metemos el punto ese numero de veces
+            //contamos el punto como in y como out
+            if(st != CH)
+            {
+              roundInfo.currRoundIN += repeat;
+            }
+            if (st != SKIP)
+            {
+              roundInfo.currRoundOUT += repeat;
+            }
+
+            if (roundInfo.currRoundIN > roundInfo.prevRoundOUT)
+            {
+              errorFound = true;
+              alert("número incorrecto de puntos en la vuelta " + (i+1) + ". Revise sus cálculos.");
+            }
+
           }
         }
         
