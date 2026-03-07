@@ -34,7 +34,7 @@
     #panes>.left {
       padding: 1em;
       background: MediumOrchid;
-      color: white;
+      color: GhostWhite;
     }
 
     .navbar {
@@ -47,34 +47,52 @@
   margin-left: 20%;
   margin-bottom: 10px;
   border-radius: 25px;
-      border: 2px solid DarkViolet;
-      padding: 0px;
+  border: 2px solid DarkViolet;
+  padding: 0px;
   
 }
 
 .navbar a {
   float: left;
   font-size: 16px;
-  color: white;
+  color: GhostWhite;
   text-align: center;
   padding: 14px 16px;
   text-decoration: none;
 }
 
 .navbar a:hover, .dropdown:hover .dropbtn {
-  background-color: white;
+  background-color: GhostWhite;
   color: blueviolet;
 }
  
 
-     textarea {
-        overflow-y: scroll;
-        height: 550px;
-        width: 600px;
-        resize: none; /* Remove this if you want the user to resize the textarea */
-    }
-    </style>
-    <script type="importmap">
+textarea {
+  overflow-y: scroll;
+  height: 550px;
+  width: 600px;
+  resize: none; /* Remove this if you want the user to resize the textarea */
+}
+button {
+  background-color: BlueViolet; 
+  color: GhostWhite; 
+  border-color: BlueViolet; 
+  height: 60px; width: 80%; 
+  font-size:large; 
+  margin-top: 10px;
+  border-radius: 25px;
+  border: 2px solid DarkViolet;
+  padding: 0px;
+
+}
+
+button:hover {
+  background-color: GhostWhite; 
+  color: blueviolet
+}
+
+</style>
+<script type="importmap">
 {
   "imports": {
     "three": "https://cdn.jsdelivr.net/npm/three@<version>v0.149.0"
@@ -102,7 +120,7 @@
 rnd 2 diviertete
        </textarea>
       </br>
-        <button id="knitBtn" style="background-color: BlueViolet; color: white; border-color: BlueViolet; height: 60px; width: 80%; font-size:large; margin-top: 10px;">
+        <button id="knitBtn">
           Teje!</button></div> 
       <div class = "right"></div> 
   

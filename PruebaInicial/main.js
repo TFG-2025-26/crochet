@@ -46,7 +46,7 @@ const controls = new OrbitControls( camera, renderer.domElement );
 //ponemos una luz tontorrona para poder ver mejor
    const skyColor = 0xffffff;
 const groundColor = 0x222222;  
-const intensity = 1;
+const intensity = 4;
 const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
 scene.add(light);
 
@@ -153,7 +153,6 @@ function generateMesh()
       indices.push(t0, t1, b1);
 
       roundInfo.currRoundOUT++;
-      //TODO comprobamos si el último punto es turn o join, lo cual de hecho ya lo sabemos
     }
 
   }
@@ -270,17 +269,31 @@ function generateMesh()
 
     geometry.setIndex(indices);
 
-      const material = new THREE.MeshBasicMaterial({
-  color: 0x00ff00,
-  wireframe: true,
-  side: THREE.DoubleSide,
-  depthTest: false
+      const material = new THREE.MeshStandardMaterial({
+  color: 0x8A2BE2,
+  //wireframe: true,
+  flatShading: true,
+  side: THREE.DoubleSide
+  //depthTest: false
 });
 
+material.needsUpdate = true;
+geometry.computeVertexNormals();
 const mesh = new THREE.Mesh(geometry, material);
 scene.clear();
 scene.add(mesh);
 
+const edges = new THREE.EdgesGeometry(geometry);
+const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+
+const wireframe = new THREE.LineSegments(edges, lineMaterial);
+mesh.add(wireframe);
+
+const skyColor = 0xffffff;
+const groundColor = 0x222222;  
+const intensity = 4;
+const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+scene.add(light);
 }
 
 //METODO PARA PROCESAR LAS VUELTAS, POR AHORA MUY SIMPLE Y TONTO, PARA QUITAR LOS SIGINIFANTES RND Y REPETIR LAS VUELTAS UN NUMERO CORRECTO DE VECES
