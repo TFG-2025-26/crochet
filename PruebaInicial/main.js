@@ -162,7 +162,6 @@ function generateMesh()
   for (var i = 1; i < rounds.length; i++)
   {    
     const stitches = rounds[i]
-    closed.isClosed = false;
     
     roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
     roundInfo.currRoundIN = 0;
@@ -188,7 +187,16 @@ function generateMesh()
           break;
       }
 
-      if (stitches[j] != JOIN && stitches[j] != TURN)  //si es un punto normal (si es turn, no hacemos nada)
+      if(stitches[j] == JOIN)
+      {
+        //curr_direction = DIRECTION.AV
+      }
+      else if (stitches[j] == TURN)
+      {
+        //curr_direction = DIRECTION.RET
+
+      }
+      else  //si es un punto normal
       {
         //TODO: COMPROBAR CHAINS TO PLACE ETC
 
@@ -271,7 +279,7 @@ function generateMesh()
 
       const material = new THREE.MeshStandardMaterial({
   color: 0x8A2BE2,
-  //wireframe: true,
+  wireframe: true,
   flatShading: true,
   side: THREE.DoubleSide
   //depthTest: false
