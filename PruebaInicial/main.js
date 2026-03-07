@@ -116,7 +116,9 @@ function generateMesh()
     else  //los colocamos en circulo
     {
       var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
+      
       var disp = 0.02
+      if (stitches[stitches.length -1] == JOIN) disp = 0;
 
       //primero toda la capa de abajo
       for (var i = 0; i < stitches.length; i++) {
@@ -187,7 +189,7 @@ function generateMesh()
           break;
       }
 
-      if (stitches[j] != JOIN && stitches[j] != TURN)  //si es un punto normal
+      if (stitches[j] != JOIN && stitches[j] != TURN)  //si es un punto normal (si es turn, no hacemos nada)
       {
         //TODO: COMPROBAR CHAINS TO PLACE ETC
 
