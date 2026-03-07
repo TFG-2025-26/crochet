@@ -2,19 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>Vamos a hace un cubo</title>
+    <title>Hok3d</title>
+    <link rel="icon" type="image/x-icon" href="icon.ico">
     <style>
-      body { margin: 0; }
+      body { margin: 0; background: MediumOrchid;}
   
         #panes {
       display: flex;
       width: 100vw;
       height: 100vh;
     }
-    #panes>.left,
-    #panes>.right {
-      flex: 1 1 50%;
+    #panes>.left {
+      flex: 1 1 60%;
       height: 100%;
+    }
+    #panes>.right {
+      flex: 1 1 45%;
+      height: 80%;
+      border-radius: 25px;
+      border: 2px solid DarkViolet;
+      padding: 0px;
+      margin-right: 3%;
     }
 
     #panes>.right {
@@ -32,7 +40,7 @@
 
      textarea {
         overflow-y: scroll;
-        height: 600px;
+        height: 550px;
         width: 600px;
         resize: none; /* Remove this if you want the user to resize the textarea */
     }
@@ -48,13 +56,16 @@
 <script type="module" src="/main.js"></script>
   </head>
   <body>
-    <div id = "panes">
-      <div class = "left"><p> patron aqui porfa</p> 
-        <textarea id="input" name="input">
-          Q divertido es el ganchillo yuju
+    <p style="text-align: center;">
+    <img src="banner.png" alt="HOKE3D" width="40%"></p>
+    <div id = "panes"style="text-align: center;">
+      <div class = "left">
+        <textarea id="input" name="input">rnd 1 ch 6 
+rnd 2 diviertete
        </textarea>
       </br>
-        <button id="knitBtn" style="background-color: BlueViolet; color: white; border-color: BlueViolet;">Teje!</button></div> 
+        <button id="knitBtn" style="background-color: BlueViolet; color: white; border-color: BlueViolet; height: 60px; width: 80%; font-size:large; margin-top: 10px;">
+          Teje!</button></div> 
       <div class = "right"></div> 
   
     </div>
