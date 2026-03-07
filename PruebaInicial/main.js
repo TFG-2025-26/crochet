@@ -291,7 +291,7 @@ mesh.add(wireframe);
 
 const skyColor = 0xffffff;
 const groundColor = 0x222222;  
-const intensity = 4;
+const intensity = 6;
 const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
 scene.add(light);
 }

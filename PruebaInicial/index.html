@@ -4,8 +4,13 @@
     <meta charset="utf-8">
     <title>Hok3d</title>
     <link rel="icon" type="image/x-icon" href="icon.ico">
+   <link href='https://fonts.googleapis.com/css?family=Titan One' rel='stylesheet'>
+   <link href='https://fonts.googleapis.com/css?family=Syne Mono' rel='stylesheet'>
+   <link href='https://fonts.googleapis.com/css?family=Roboto Slab' rel='stylesheet'>
     <style>
-      body { margin: 0; background: MediumOrchid; text-align: center;}
+      body { margin: 0; 
+        background: MediumOrchid; 
+        text-align: center;}
   
         #panes {
       display: flex;
@@ -40,7 +45,7 @@
     .navbar {
   overflow: hidden;
   background-color: BlueViolet;
-  font-family: Arial;
+  font-family: 'Titan One';
   width: 60%;
   height: 40px;
   text-align: center;
@@ -49,6 +54,7 @@
   border-radius: 25px;
   border: 2px solid DarkViolet;
   padding: 0px;
+
   
 }
 
@@ -59,6 +65,7 @@
   text-align: center;
   padding: 14px 16px;
   text-decoration: none;
+  margin-top: 0px;
 }
 
 .navbar a:hover, .dropdown:hover .dropbtn {
@@ -69,26 +76,127 @@
 
 textarea {
   overflow-y: scroll;
-  height: 550px;
-  width: 600px;
+  height: 580px;
+  width: 90%;
   resize: none; /* Remove this if you want the user to resize the textarea */
+  border-radius: 15px;
+  border: 2px solid DarkViolet;
+  padding: 10px;
+  font-family: 'Roboto Slab';
 }
 button {
   background-color: BlueViolet; 
   color: GhostWhite; 
   border-color: BlueViolet; 
   height: 60px; width: 80%; 
-  font-size:large; 
+  font-size:xx-large ; 
   margin-top: 10px;
   border-radius: 25px;
   border: 2px solid DarkViolet;
   padding: 0px;
+  font-family: 'Titan One';
 
 }
 
 button:hover {
   background-color: GhostWhite; 
   color: blueviolet
+}
+
+.box {
+  width: 40%;
+  margin: 0 auto;
+  background: rgba(255,255,255,0.2);
+  padding: 35px;
+  border: 2px solid #fff;
+  border-radius: 20px/50px;
+  background-clip: padding-box;
+  text-align: center;
+}
+
+.button {
+  cursor: pointer;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  transition: opacity 500ms;
+  visibility: hidden;
+  opacity: 0;
+}
+.overlay:target {
+  visibility: visible;
+  opacity: 1;
+}
+
+.popup {
+  margin: 70px auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 15px;
+  width: 70%;
+  position: relative;
+  transition: all 5s ease-in-out;
+  font-family: 'Roboto Slab';
+  text-align: center;
+  
+}
+
+.popup h2 {
+  margin-top: 0;
+  color: #333;
+  font-family: 'Titan One';
+}
+.popup .close {
+  position: absolute;
+  top: -5px;
+  right: 20px;
+  transition: all 200ms;
+  font-size: 50px;
+  font-weight: bold;
+  text-decoration: none;
+  color: #333;
+  font-family: 'Titan One';
+}
+.popup .close:hover {
+  color: blueviolet;
+}
+.popup .content {
+  max-height: 30%;
+  overflow: auto;
+  text-align: center;
+}
+
+@media screen and (max-width: 900px){
+  .box{
+    width: 90%;
+  }
+  .popup{
+    width: 90%;
+    text-align: center;
+  }
+}
+
+table {
+  border-collapse: collapse;
+  width: 50%;
+  font-size: 12px;
+  margin-left: 25%;
+}
+
+td, th {
+  border: 1px solid blueviolet;
+  text-align: center;
+  padding: 8px;
+}
+th {color:blueviolet;}
+tr:nth-child(even) {
+  background-color: lavender;
 }
 
 </style>
@@ -108,10 +216,41 @@ button:hover {
 
 
     <div class="navbar">
-    <a href="#home">Guia de estilo</a>
+    <a class = "button" href="#popup1">Guia de estilo</a>
     <a href="#news">Contacto</a>
     </div>
 
+    <div id="popup1" class="overlay">
+	<div class="popup">
+		<h2>Guia de estilo</h2>
+		<a class="close" href="#">&times;</a>
+		<div class="content" style="text-align: center;">
+        <table>
+          <tr>
+            <th>Diminutivo</th>
+            <th>Punto</th>
+          </tr>
+          <tr>
+            <td>ch</td>
+            <td>cadeneta</td>
+          </tr>
+          <tr>
+            <td>sc</td>
+            <td>punto bajo</td>
+          </tr>
+          <tr>
+            <td>hdc</td>
+            <td>punto medio alto</td>
+          </tr>
+          <tr>
+            <td>dc</td>
+            <td>punto alto</td>
+          </tr>
+          
+      </table>
+		</div>
+	</div>
+  </div>
 
 
     <div id = "panes"style="text-align: center;">
@@ -121,12 +260,11 @@ rnd 2 diviertete
        </textarea>
       </br>
         <button id="knitBtn">
-          Teje!</button></div> 
+          ¡Teje!</button></div> 
       <div class = "right"></div> 
   
     </div>
     
     <!-- <script type="module" src="Main_svg.js"></script>  -->
-     <!-- font a usar = Modak  -->
   </body>
 </html>
