@@ -103,12 +103,12 @@ function generateMesh()
     if (!closed.isClosed)
     {
         //primero toda la capa de abajo
-      for (var i = 0; i < stitches.length+1; i++) {
+      for (var i = 0; i < stitches.length; i++) {
         positions.push(SIZE_X * i, 0, 0);
       }
 
       //la capa de arriba (para q tenga sentido en nuestra arquitectura)
-      for (var i = 0; i < stitches.length+1; i++) {
+      for (var i = 0; i < stitches.length; i++) {
         positions.push(SIZE_X * i, SIZES_Y[CH], 0);
       }
 
@@ -119,7 +119,7 @@ function generateMesh()
       var disp = 0.02
 
       //primero toda la capa de abajo
-      for (var i = 0; i < stitches.length+1; i++) {
+      for (var i = 0; i < stitches.length; i++) {
         var ang = i * theta;
         var x = (closed.radious + i *disp) * Math.cos(ang);
         var z = (closed.radious + i *disp) * Math.sin(ang);
@@ -127,7 +127,7 @@ function generateMesh()
       }
 
       //la capa de arriba (para q tenga sentido en nuestra arquitectura)
-      for (var i = 0; i < stitches.length+1; i++) {
+      for (var i = 0; i < stitches.length; i++) {
         var ang = i * theta;
         var x = (closed.radious + i *disp) * Math.cos(ang);
         var z = (closed.radious + i *disp) * Math.sin(ang);
@@ -140,12 +140,12 @@ function generateMesh()
     
      
     //y ahora los indexamos todos
-    for(var i = 0; i < stitches.length; i++)
+    for(var i = 0; i < stitches.length-1; i++)
     {
       const b0 = i;
       const b1 = i + 1;
-      const t0 = i + stitches.length+1;
-      const t1 = i + 1 + stitches.length+1;
+      const t0 = i + stitches.length;
+      const t1 = i + 1 + stitches.length;
 
       indices.push(b0, t0, b1);
       indices.push(t0, t1, b1);
@@ -187,7 +187,7 @@ function generateMesh()
           break;
       }
 
-      if (stitches[j] != JOIN)  //si es un punto normal
+      if (stitches[j] != JOIN && stitches[j] != TURN)  //si es un punto normal
       {
         //TODO: COMPROBAR CHAINS TO PLACE ETC
 
@@ -319,6 +319,12 @@ function processRounds(input)
         nRndWords = 4;
 
       }
+      //vemos si acaba en join o turn
+      if(!closed.isClosed && puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
+      {
+        alert("Error al final de la vuelta " + (i+1) + ". Trabajando en plano, una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
+        errorFound = true;
+      }
 
 
       if(!errorFound)
@@ -332,7 +338,7 @@ function processRounds(input)
         var j = nRndWords;
         while (j < puntosIN.length && !errorFound)
         {
-          if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN)
+          if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN && puntosIN[j]!= TURN)
           {
             alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
             errorFound = true;
@@ -351,6 +357,11 @@ function processRounds(input)
               console.log(closed.radious);
             }
             puntosOut.push(JOIN)
+            j++;
+          }
+          else if(puntosIN[j]== TURN)
+          {
+            puntosOut.push(TURN);
             j++;
           }
 
