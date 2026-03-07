@@ -116,20 +116,21 @@ function generateMesh()
     else  //los colocamos en circulo
     {
       var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
+      var disp = 0.02
 
       //primero toda la capa de abajo
       for (var i = 0; i < stitches.length+1; i++) {
         var ang = i * theta;
-        var x = closed.radious * Math.cos(ang);
-        var z = closed.radious * Math.sin(ang);
+        var x = (closed.radious + i *disp) * Math.cos(ang);
+        var z = (closed.radious + i *disp) * Math.sin(ang);
         positions.push(x, 0, z);
       }
 
       //la capa de arriba (para q tenga sentido en nuestra arquitectura)
       for (var i = 0; i < stitches.length+1; i++) {
         var ang = i * theta;
-        var x = closed.radious * Math.cos(ang);
-        var z = closed.radious * Math.sin(ang);
+        var x = (closed.radious + i *disp) * Math.cos(ang);
+        var z = (closed.radious + i *disp) * Math.sin(ang);
         positions.push(x, SIZES_Y[CH], z);
       }
       console.log(closed.radious)
@@ -186,66 +187,75 @@ function generateMesh()
           break;
       }
 
-      //si es un punto, vemos primero si tenemos alguna cadeneta q resolver
-      if(stitches[j] != CH && roundInfo.chainsToPlace != 0)
+      if (stitches[j] != JOIN)  //si es un punto normal
       {
-          //por ahora nada
+        //TODO: COMPROBAR CHAINS TO PLACE ETC
+
+        var prevBotom1 = 0;
+        var prevBotom2 = 0;
+        if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
+        {
+          //vemos cual es el siguiente punto
+          var prevBotom1 = firstInRound + roundInfo.currRoundIN -1;
+          var prevBotom2 = prevBotom1 + 1;
+        }
+        else
+        {
+          var prevBotom1 = firstInRound - roundInfo.currRoundIN -1;
+          var prevBotom2 = prevBotom1 - 1;
+        }
+  
+        if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
+        {
+          const baseIndex = prevBotom1 * 3;
+  
+          const x = positions[baseIndex];
+          const y = positions[baseIndex + 1];
+          const z = positions[baseIndex + 2];
+  
+          positions.push(x, y + SIZES_Y[stitches[j]], z);
+        }
+  
+        var prevtop = positions.length/3 - 1;
+        var actTop = 0;
+        if(j + 1 >= stitches.length || stitches[j+1] != JOIN) //si el siguiente no es un join, ponemos el punto nuevo
+        {
+    
+          //y ahora ponemos nuestro vertice
+          const baseIndex = prevBotom2 * 3;
+    
+          const x = positions[baseIndex];
+          const y = positions[baseIndex + 1];
+          const z = positions[baseIndex + 2];
+    
+          positions.push(x, y + SIZES_Y[stitches[j]], z);
+          actTop = positions.length/3 - 1;
+        }
+        else  //si si q es un join, unimos
+        {
+          actTop = firstInRound
+        }
+  
+        //anyways, hacemos nuestros triangulos
+  
+        //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
+        indices.push(prevBotom1);  //prev bottom
+        indices.push(prevtop);   //prev top
+        indices.push(prevBotom2);     //act botom
+  
+        //segundo tringulo
+        indices.push(prevtop); //prev top
+        indices.push(actTop);  //act top
+        indices.push(prevBotom2);   //act bottom
+  
+        //y añadimos los puntos
+        roundInfo.currRoundIN ++;
+        roundInfo.currRoundOUT ++;
       }
 
-      var prevBotom1 = 0;
-      var prevBotom2 = 0;
-      if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
-      {
-        //vemos cual es el siguiente punto
-        var prevBotom1 = firstInRound + roundInfo.currRoundIN -1;
-        var prevBotom2 = prevBotom1 + 1;
-      }
-      else
-      {
-        var prevBotom1 = firstInRound - roundInfo.currRoundIN -1;
-        var prevBotom2 = prevBotom1 - 1;
-      }
-
-      if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
-      {
-        const baseIndex = prevBotom1 * 3;
-
-        const x = positions[baseIndex];
-        const y = positions[baseIndex + 1];
-        const z = positions[baseIndex + 2];
-
-        positions.push(x, y + SIZES_Y[stitches[j]], z);
-      }
-
-      var prevtop = positions.length/3 - 1;
-
-      //y ahora ponemos nuestro vertice
-      const baseIndex = prevBotom2 * 3;
-
-      const x = positions[baseIndex];
-      const y = positions[baseIndex + 1];
-      const z = positions[baseIndex + 2];
-
-      positions.push(x, y + SIZES_Y[stitches[j]], z);
-      var actTop = positions.length/3 - 1;
-
-      //anyways, hacemos nuestros triangulos
-
-      //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
-      indices.push(prevBotom1);  //prev bottom
-      indices.push(prevtop);   //prev top
-      indices.push(prevBotom2);     //act botom
-
-      //segundo tringulo
-      indices.push(prevtop); //prev top
-      indices.push(actTop);  //act top
-      indices.push(prevBotom2);   //act bottom
 
       j++;
 
-      //y añadimos los puntos
-      roundInfo.currRoundIN ++;
-      roundInfo.currRoundOUT ++;
       
     }
     
@@ -331,7 +341,7 @@ function processRounds(input)
           {
             if (j < puntosIN.length -1)
             {
-              alert("Error en la vuelta: " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
+              alert("Error en la vuelta " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
               errorFound = true;
             }
             else if (!closed.isClosed)  //calculamos el radio
@@ -340,6 +350,7 @@ function processRounds(input)
               closed.radious = SIZE_X / (2 * Math.sin(Math.PI /roundInfo.currRoundOUT)) 
               console.log(closed.radious);
             }
+            puntosOut.push(JOIN)
             j++;
           }
 
