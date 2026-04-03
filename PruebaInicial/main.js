@@ -87,7 +87,13 @@ function generateMesh()
   var indices = [];
 
   var roundInfo =
-  {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0, chainsToPlace : 0, prevRoundStitches : [], currRoundStitches : []}
+  {prevRoundOUT : 0, 
+    currRoundIN : 0, 
+    currRoundOUT : 0, 
+    chainsToPlace : 0, 
+    prevRoundStitches : [], 
+    currRoundStitches : [],
+    prevRoundJoined : false}
 
   //hacemos la primera vuelta:
   generateFirstRound(roundInfo, closed, rounds[0], positions, indices);
@@ -286,6 +292,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       //la capa de arriba (para q tenga sentido en nuestra arquitectura)
       for (var i = 0; i < stitches.length; i++) {
         roundInfo.currRoundStitches.push(positions.length/3)
+        roundInfo.prevRoundJoined = true;
         positions.push(SIZE_X * i, SIZES_Y[CH], 0);
       }
 
@@ -342,7 +349,6 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 function generateRound(indices, positions, stitches, roundInfo)
 {
   var currStitch = 0;
-  console.log(roundInfo.prevRoundStitches)
 
   while (currStitch < stitches.length)
   {
@@ -353,10 +359,16 @@ function generateRound(indices, positions, stitches, roundInfo)
     {
 
       if(stitches[currStitch] == JOIN)
+      {
         curr_direction = DIRECTION.AV
+        roundInfo.lastRoundJoined = true
+      }
       
       else if (stitches[currStitch] == TURN)
+      {
         curr_direction = DIRECTION.RET
+        roundInfo.lastRoundJoined = false
+      }
 
       else  //si es un punto normal
       {
@@ -368,7 +380,7 @@ function generateRound(indices, positions, stitches, roundInfo)
         if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
         {
           prevBotom1 = roundInfo.prevRoundStitches[roundInfo.currRoundIN];
-          prevBotom2 = roundInfo.prevRoundStitches[(roundInfo.currRoundIN+1) % roundInfo.prevRoundOUT]
+          prevBotom2 = roundInfo.prevRoundStitches[roundInfo.currRoundIN+1]
         }
 
         else
@@ -380,7 +392,10 @@ function generateRound(indices, positions, stitches, roundInfo)
         if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
         {
           roundInfo.currRoundStitches.push(positions.length/3)
-          placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1)
+          if (roundInfo.lastRoundJoined && stitches.includes(TURN))
+            placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1, 0.05)
+          else
+            placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1)
         }
 
         var prevtop = roundInfo.currRoundStitches.at(-1)
@@ -402,10 +417,6 @@ function generateRound(indices, positions, stitches, roundInfo)
     
         //anyways, hacemos nuestros triangulos
         makeTriangles(indices, prevBotom1, prevBotom2, prevtop, actTop)
-        console.log("placing stitch")
-        console.log(roundInfo.currRoundOUT)
-        console.log(prevBotom1)
-        console.log(prevBotom2)
 
         //y añadimos los puntos
         roundInfo.currRoundIN ++;
@@ -417,7 +428,7 @@ function generateRound(indices, positions, stitches, roundInfo)
 
 }
 
-function placeVertexStitch(positions, sizeY, bottom)
+function placeVertexStitch(positions, sizeY, bottom, offset = 0)
 {
   const baseIndex = bottom * 3;
           
@@ -425,7 +436,7 @@ function placeVertexStitch(positions, sizeY, bottom)
   const y = positions[baseIndex + 1];
   const z = positions[baseIndex + 2];
   
-  positions.push(x, y + sizeY, z);
+  positions.push(x + offset, y + sizeY, z + offset);
 
 }
 
