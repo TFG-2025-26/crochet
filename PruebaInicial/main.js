@@ -72,24 +72,202 @@ function generateMesh()
   var value = document.getElementById("input").value;
   value = value.toLowerCase();
   
+  closed = {isClosed: false, radious: 0}
+  curr_direction = DIRECTION.RET;
+
   const rounds = processRounds(value);
-  console.log(closed);
 
   if (rounds == -1) //si ha habido un error en el preprocesado, paramos
   {
     return;
   }
   
-  //empezamos a generar la mesh (posiblemente sea mejor hacerlo en dos pasos)
-  const geometry = new THREE.BufferGeometry();
+  //empezamos a generar la mesh
   var positions = [];
   var indices = [];
 
   var roundInfo =
-  {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0, chainsToPlace : 0}
+  {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0, chainsToPlace : 0, prevRoundStitches : [], currRoundStitches : []}
 
   //hacemos la primera vuelta:
-  if(rounds[0][0] == MAGICRING)
+  generateFirstRound(roundInfo, closed, rounds[0], positions, indices);
+
+
+  //y ahora hacemos el resto de vueltas
+  for (var i = 1; i < rounds.length; i++)
+  {    
+    const stitches = rounds[i]
+    
+    roundInfo.prevRoundOUT =  roundInfo.currRoundOUT
+    roundInfo.prevRoundStitches = roundInfo.currRoundStitches
+    roundInfo.currRoundStitches = []
+    roundInfo.currRoundIN = 0;
+    roundInfo.currRoundOUT = 0;
+    
+    generateRound(indices, positions, stitches, roundInfo)
+    
+  }
+
+  //añadimos nuestra geometria
+  refreshGeometry(positions, indices)
+}
+
+
+//METODO PARA PROCESAR LAS VUELTAS, POR AHORA MUY SIMPLE Y TONTO, PARA QUITAR LOS SIGINIFANTES RND Y REPETIR LAS VUELTAS UN NUMERO CORRECTO DE VECES
+function processRounds(input)
+{
+  //TODO: AÑADIR COMPROBACIÓN DE Q LA PRIMERA VUELTA ES VÁLIDA
+  var roundsIN = input.split("\n");
+  var roundsOUT = [];
+  var nVueltas = 1;
+  var errorFound = false; var i = 0;
+  closed.isClosed = false;
+  
+
+  var roundInfo = {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0};
+  while (i < roundsIN.length && !errorFound)
+  {
+    var puntosIN =  roundsIN[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
+
+   if(puntosIN.length > 0)
+    {
+      
+      var nReps = 1;
+      var nRndWords = 2;
+      var error = validateRoundHeader(puntosIN, nVueltas)
+      if (error != null)
+      {
+        alert(error)
+        errorFound = true;
+      }
+
+      else
+      {
+        //vemos si son varias vueltas:
+        if (puntosIN.length > 4 && puntosIN[2] == "-")
+        {
+          nReps = puntosIN[3] - nVueltas +1;
+          nRndWords = 4;
+        }
+
+        if(!errorFound)
+        {
+          roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
+          roundInfo.currRoundIN = 0;
+          roundInfo.currRoundOUT = 0;
+  
+          //traducimos la vuelta
+          var puntosOut = [];
+          var j = nRndWords;
+          while (j < puntosIN.length && !errorFound)
+          {
+            if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN && puntosIN[j]!= TURN)
+            {
+              alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
+              errorFound = true;
+            }
+            else if(puntosIN[j]== JOIN)
+            {
+              if (j < puntosIN.length -1)
+              {
+                alert("Error en la vuelta " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
+                errorFound = true;
+              }
+              else if (!closed.isClosed)  //calculamos el radio
+              {
+                closed.isClosed = true;
+                closed.radious = SIZE_X / (2 * Math.sin(Math.PI /roundInfo.currRoundOUT)) 
+              }
+              puntosOut.push(JOIN)
+              j++;
+            }
+            else if(puntosIN[j]== TURN)
+            {
+              puntosOut.push(TURN);
+              j++;
+            }
+  
+            else
+            {
+              var repeat = 1;
+              var st = puntosIN[j];
+              j++;
+              if(parseInt(puntosIN[j],10).toString()===puntosIN[j]) //esto es una manera fancy de comprobar q es un numero
+              {
+                repeat = parseInt(puntosIN[j], 10);
+                j++;
+  
+              }
+              puntosOut.push(...Array(repeat).fill(st)); //metemos el punto ese numero de veces
+              //contamos el punto como in y como out
+              if(st != CH)
+              {
+                roundInfo.currRoundIN += repeat;
+              }
+              if (st != SKIP)
+              {
+                roundInfo.currRoundOUT += repeat;
+              }
+  
+              if (roundInfo.currRoundIN > roundInfo.prevRoundOUT)
+              {
+                errorFound = true;
+                alert("número incorrecto de puntos en la vuelta " + (i+1) + ". Revise sus cálculos.");
+              }
+  
+            }
+          }
+          
+          //si son varias vueltas:
+          for(j = 0; j < nReps; j++)
+          {
+            roundsOUT.push(puntosOut.slice());
+          }
+          nVueltas+= nReps;
+    
+        }
+      }
+     
+
+    }
+    i++
+
+    
+  }
+
+  if(!errorFound)
+  {
+    return roundsOUT;
+  }
+    
+  else
+    return -1;
+}
+
+function validateRoundHeader(puntosIN, nVueltas)
+{
+  var error = null;
+  if(puntosIN.length < 2 || puntosIN[0] != "rnd" || puntosIN[1] != nVueltas)
+    error = ("Formato incorrecto en la vuelta " + nVueltas + ". Debería empezar por \"rnd " + nVueltas + "\". Revise el fomato de linea.");
+  
+  //vemos si son varias vueltas:
+  if (puntosIN.length > 4 && puntosIN[2] == "-")
+  {
+    if(parseInt(puntosIN[3],10).toString() !== puntosIN[3] || puntosIN[3] <= nVueltas)
+      error = ("Formato incorrecto en la vuelta " + nVueltas + ". Revise el uso de guiones (-).");
+  }
+
+  //vemos si acaba en join o turn
+  if(!closed.isClosed && puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
+    error = ("Error al final de la vuelta " + (i+1) + ". Trabajando en plano, una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
+
+  return error;
+
+}
+
+function generateFirstRound(roundInfo, closed, stitches, positions, indices)
+{
+  if(stitches[0] == MAGICRING)
   {
     //por ahora pues nada
 
@@ -97,8 +275,6 @@ function generateMesh()
 
   else  //si no es un mr, tienen q ser cadenetas
   {
-    roundInfo.currRoundOUT = 0;
-    const stitches = rounds[0]
 
     if (!closed.isClosed)
     {
@@ -109,6 +285,7 @@ function generateMesh()
 
       //la capa de arriba (para q tenga sentido en nuestra arquitectura)
       for (var i = 0; i < stitches.length; i++) {
+        roundInfo.currRoundStitches.push(positions.length/3)
         positions.push(SIZE_X * i, SIZES_Y[CH], 0);
       }
 
@@ -118,7 +295,11 @@ function generateMesh()
       var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
       
       var disp = 0.02
-      if (stitches[stitches.length -1] == JOIN) disp = 0;
+      if (stitches[stitches.length -1] == JOIN) 
+      {
+        disp = 0;
+        curr_direction = DIRECTION.AV
+      }
 
       //primero toda la capa de abajo
       for (var i = 0; i < stitches.length; i++) {
@@ -133,14 +314,12 @@ function generateMesh()
         var ang = i * theta;
         var x = (closed.radious + i *disp) * Math.cos(ang);
         var z = (closed.radious + i *disp) * Math.sin(ang);
+        roundInfo.currRoundStitches.push(positions.length/3)
         positions.push(x, SIZES_Y[CH], z);
       }
-      console.log(closed.radious)
 
     }
 
-    
-     
     //y ahora los indexamos todos
     for(var i = 0; i < stitches.length-1; i++)
     {
@@ -156,291 +335,144 @@ function generateMesh()
     }
 
   }
+  
 
+}
 
-  //y ahora hacemos el resto de vueltas
-  for (var i = 1; i < rounds.length; i++)
-  {    
-    const stitches = rounds[i]
-    
-    roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
-    roundInfo.currRoundIN = 0;
-    roundInfo.currRoundOUT = 0;
-    var j = 0;
-    var firstInRound;
-    if(curr_direction == DIRECTION.AV)
-    {
-      firstInRound = positions.length/3 - roundInfo.prevRoundOUT;
-    }
+function generateRound(indices, positions, stitches, roundInfo)
+{
+  var currStitch = 0;
+  console.log(roundInfo.prevRoundStitches)
+
+  while (currStitch < stitches.length)
+  {
+    if (stitches[currStitch] == CH)
+      roundInfo.chainsToPlace++;
+
     else
     {
-      firstInRound =  positions.length/3;
-    }
-    while (j < stitches.length)
-    {
-      switch (stitches[j])
-      {
-        case CH:
-          roundInfo.chainsToPlace ++;
 
-        default:
-          break;
-      }
+      if(stitches[currStitch] == JOIN)
+        curr_direction = DIRECTION.AV
+      
+      else if (stitches[currStitch] == TURN)
+        curr_direction = DIRECTION.RET
 
-      if(stitches[j] == JOIN)
-      {
-        //curr_direction = DIRECTION.AV
-      }
-      else if (stitches[j] == TURN)
-      {
-        //curr_direction = DIRECTION.RET
-
-      }
       else  //si es un punto normal
       {
         //TODO: COMPROBAR CHAINS TO PLACE ETC
-
+    
         var prevBotom1 = 0;
         var prevBotom2 = 0;
+        
         if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
         {
-          //vemos cual es el siguiente punto
-          var prevBotom1 = firstInRound + roundInfo.currRoundIN -1;
-          var prevBotom2 = prevBotom1 + 1;
+          prevBotom1 = roundInfo.prevRoundStitches[roundInfo.currRoundIN];
+          prevBotom2 = roundInfo.prevRoundStitches[(roundInfo.currRoundIN+1) % roundInfo.prevRoundOUT]
         }
+
         else
         {
-          var prevBotom1 = firstInRound - roundInfo.currRoundIN -1;
-          var prevBotom2 = prevBotom1 - 1;
+          prevBotom1 = roundInfo.prevRoundStitches[roundInfo.prevRoundOUT - roundInfo.currRoundIN];
+          prevBotom2 = roundInfo.prevRoundStitches[roundInfo.prevRoundOUT - roundInfo.currRoundIN -1];
         }
-  
+          
         if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
         {
-          const baseIndex = prevBotom1 * 3;
-  
-          const x = positions[baseIndex];
-          const y = positions[baseIndex + 1];
-          const z = positions[baseIndex + 2];
-  
-          positions.push(x, y + SIZES_Y[stitches[j]], z);
+          roundInfo.currRoundStitches.push(positions.length/3)
+          placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1)
         }
-  
-        var prevtop = positions.length/3 - 1;
+
+        var prevtop = roundInfo.currRoundStitches.at(-1)
         var actTop = 0;
-        if(j + 1 >= stitches.length || stitches[j+1] != JOIN) //si el siguiente no es un join, ponemos el punto nuevo
+    
+        if(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN) //si el siguiente no es un join, ponemos el punto nuevo
         {
-    
-          //y ahora ponemos nuestro vertice
-          const baseIndex = prevBotom2 * 3;
-    
-          const x = positions[baseIndex];
-          const y = positions[baseIndex + 1];
-          const z = positions[baseIndex + 2];
-    
-          positions.push(x, y + SIZES_Y[stitches[j]], z);
+          roundInfo.currRoundStitches.push(positions.length/3)
+          placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom2)
           actTop = positions.length/3 - 1;
         }
+
         else  //si si q es un join, unimos
         {
-          actTop = firstInRound
+          actTop = roundInfo.currRoundStitches[0]
+          roundInfo.currRoundStitches.push(roundInfo.currRoundStitches[0])
         }
-  
+        
+    
         //anyways, hacemos nuestros triangulos
-  
-        //segun mis calculos, para hacer un triangulo dentro de la misma vuelta, vas como de dos en dos tanto arriba como abajo
-        indices.push(prevBotom1);  //prev bottom
-        indices.push(prevtop);   //prev top
-        indices.push(prevBotom2);     //act botom
-  
-        //segundo tringulo
-        indices.push(prevtop); //prev top
-        indices.push(actTop);  //act top
-        indices.push(prevBotom2);   //act bottom
-  
+        makeTriangles(indices, prevBotom1, prevBotom2, prevtop, actTop)
+        console.log("placing stitch")
+        console.log(roundInfo.currRoundOUT)
+        console.log(prevBotom1)
+        console.log(prevBotom2)
+
         //y añadimos los puntos
         roundInfo.currRoundIN ++;
         roundInfo.currRoundOUT ++;
       }
-
-
-      j++;
-
-      
     }
-    
-  }
+    currStitch++
+  } 
 
+}
+
+function placeVertexStitch(positions, sizeY, bottom)
+{
+  const baseIndex = bottom * 3;
+          
+  const x = positions[baseIndex];
+  const y = positions[baseIndex + 1];
+  const z = positions[baseIndex + 2];
   
+  positions.push(x, y + sizeY, z);
 
-  //añadimos nuestra geometria
+}
+
+function makeTriangles(indices, prevBotom1, prevBotom2, prevtop, actTop)
+{
+  indices.push(prevBotom1);
+  indices.push(prevtop);
+  indices.push(prevBotom2); 
+
+  indices.push(prevtop);
+  indices.push(actTop); 
+  indices.push(prevBotom2);  
+
+}
+
+function refreshGeometry(positions, indices)
+{
+  scene.clear();
+
+  const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
 
     geometry.setIndex(indices);
 
       const material = new THREE.MeshStandardMaterial({
   color: 0x8A2BE2,
-  wireframe: true,
+  //wireframe: true,
   flatShading: true,
   side: THREE.DoubleSide
   //depthTest: false
-});
+  });
 
-material.needsUpdate = true;
-geometry.computeVertexNormals();
-const mesh = new THREE.Mesh(geometry, material);
-scene.clear();
-scene.add(mesh);
+  material.needsUpdate = true;
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, material);
+  scene.add(mesh);
 
-const edges = new THREE.EdgesGeometry(geometry);
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+  const edges = new THREE.EdgesGeometry(geometry);
+  const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
 
-const wireframe = new THREE.LineSegments(edges, lineMaterial);
-mesh.add(wireframe);
+  const wireframe = new THREE.LineSegments(edges, lineMaterial);
+  mesh.add(wireframe);
 
-const skyColor = 0xffffff;
-const groundColor = 0x222222;  
-const intensity = 6;
-const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
-scene.add(light);
+  const skyColor = 0xffffff;
+  const groundColor = 0x222222;  
+  const intensity = 6;
+  const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
+  scene.add(light);
+
 }
-
-//METODO PARA PROCESAR LAS VUELTAS, POR AHORA MUY SIMPLE Y TONTO, PARA QUITAR LOS SIGINIFANTES RND Y REPETIR LAS VUELTAS UN NUMERO CORRECTO DE VECES
-function processRounds(input)
-{
-  //TODO: AÑADIR COMPROBACIÓN DE Q LA PRIMERA VUELTA ES VÁLIDA
-  var roundsIN = input.split("\n");
-  var roundsOUT = [];
-  var nVueltas = 0;
-  var errorFound = false; var i = 0;
-  
-
-  var roundInfo = {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0};
-  while (i < roundsIN.length && !errorFound)
-  {
-    var puntosIN =  roundsIN[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
-
-   if(puntosIN.length > 0)
-    {
-      nVueltas++;
-      var nReps = 1;
-      var nRndWords = 2;
-      if(puntosIN.length < 2 || puntosIN[0] != "rnd" || puntosIN[1] != nVueltas)
-      {
-        alert("Formato incorrecto en la vuelta " + nVueltas + ". Debería empezar por \"rnd " + nVueltas + "\". Revise el fomato de linea.");
-        errorFound = true;
-      }
-      
-      //vemos si son varias vueltas:
-      if (puntosIN.length > 4 && puntosIN[2] == "-")
-      {
-        if(! parseInt(puntosIN[3],10).toString()===puntosIN[3] && puntosIN[3] > nVueltas)
-        {
-          alert("Formato incorrecto en la vuelta " + nVueltas + ". Revise el uso de guiones (-).");
-          errorFound = true;
-        }
-        nReps = puntosIN[3] - nVueltas +1;
-        nRndWords = 4;
-
-      }
-      //vemos si acaba en join o turn
-      if(!closed.isClosed && puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
-      {
-        alert("Error al final de la vuelta " + (i+1) + ". Trabajando en plano, una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
-        errorFound = true;
-      }
-
-
-      if(!errorFound)
-      {
-        roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
-        roundInfo.currRoundIN = 0;
-        roundInfo.currRoundOUT = 0;
-
-        //traducimos la vuelta
-        var puntosOut = [];
-        var j = nRndWords;
-        while (j < puntosIN.length && !errorFound)
-        {
-          if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN && puntosIN[j]!= TURN)
-          {
-            alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
-            errorFound = true;
-          }
-          else if(puntosIN[j]== JOIN)
-          {
-            if (j < puntosIN.length -1)
-            {
-              alert("Error en la vuelta " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
-              errorFound = true;
-            }
-            else if (!closed.isClosed)  //calculamos el radio
-            {
-              closed.isClosed = true;
-              closed.radious = SIZE_X / (2 * Math.sin(Math.PI /roundInfo.currRoundOUT)) 
-              console.log(closed.radious);
-            }
-            puntosOut.push(JOIN)
-            j++;
-          }
-          else if(puntosIN[j]== TURN)
-          {
-            puntosOut.push(TURN);
-            j++;
-          }
-
-          else
-          {
-            var repeat = 1;
-            var st = puntosIN[j];
-            j++;
-            if(parseInt(puntosIN[j],10).toString()===puntosIN[j]) //esto es una manera fancy de comprobar q es un numero
-            {
-              repeat = parseInt(puntosIN[j], 10);
-              j++;
-
-            }
-            puntosOut.push(...Array(repeat).fill(st)); //metemos el punto ese numero de veces
-            //contamos el punto como in y como out
-            if(st != CH)
-            {
-              roundInfo.currRoundIN += repeat;
-            }
-            if (st != SKIP)
-            {
-              roundInfo.currRoundOUT += repeat;
-            }
-
-            if (roundInfo.currRoundIN > roundInfo.prevRoundOUT)
-            {
-              errorFound = true;
-              alert("número incorrecto de puntos en la vuelta " + (i+1) + ". Revise sus cálculos.");
-            }
-
-          }
-        }
-        
-        //si son varias vueltas:
-        for(j = 0; j < nReps; j++)
-        {
-          roundsOUT.push(puntosOut.slice());
-        }
-      
-      
-      }
-
-    }
-    i++
-
-    
-  }
-
-  if(!errorFound)
-  {
-    console.log(roundsOUT);
-    return roundsOUT;
-  }
-    
-  else
-    return -1;
-}
-
