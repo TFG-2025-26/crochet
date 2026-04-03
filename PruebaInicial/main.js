@@ -376,6 +376,8 @@ function generateRound(indices, positions, stitches, roundInfo)
     
         var prevBotom1 = 0;
         var prevBotom2 = 0;
+        var prevtop = 0;
+        var actTop = 0;
         
         if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
         {
@@ -392,14 +394,17 @@ function generateRound(indices, positions, stitches, roundInfo)
         if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
         {
           roundInfo.currRoundStitches.push(positions.length/3)
+          
           if (roundInfo.lastRoundJoined && stitches.includes(TURN))
             placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1, 0.05)
+          
+          
           else
             placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1)
+          
         }
+        prevtop = roundInfo.currRoundStitches.at(-1)
 
-        var prevtop = roundInfo.currRoundStitches.at(-1)
-        var actTop = 0;
     
         if(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN) //si el siguiente no es un join, ponemos el punto nuevo
         {
