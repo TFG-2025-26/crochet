@@ -23,21 +23,29 @@ var curr_direction = DIRECTION.RET;
 
 
 ////////////INICIALIZACIÓN DE TODO/////////////
-const scene = new THREE.Scene();    //creamos la escena
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth/2 / window.innerHeight, 0.1, 1000 );    //creamos la cámara
-                                        //( field of view,  aspect ratio, near and far clipping)
 
-const renderer = new THREE.WebGLRenderer({ alpha: true }); //creamos el renderer    //el alpha true para q tenga en cuenta el alfa
-renderer.setSize( window.innerWidth/2, window.innerHeight );
+const container = document.querySelector("#panes>.right");
+
+const width = container.clientWidth;
+const height = container.clientHeight;
+
+const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000); //creamos la cámara
+                                                                          //( field of view,  aspect ratio, near and far clipping)
+
+const renderer = new THREE.WebGLRenderer({ alpha: true });
+renderer.setSize(width, height);
+
+//AHHH ESTO SELECCIONA Q PARTE DEL DOMUENTO VAMOS A PONER EL CANVAS
+container.appendChild(renderer.domElement);
+//document.querySelector("#panes>.right").appendChild( renderer.domElement );
+
+
+const scene = new THREE.Scene();    //creamos la escena
 
 //me molestaba q el fondo fuese negro asiq vamos a cambiarlo
 //scene.background = new THREE.Color( 0x000000, 0); //esto no está funcionando
 renderer.setClearColor(0x000000, 0);  //haleluja  
 
-
-
-//AHHH ESTO SELECCIONA Q PARTE DEL DOMUENTO VAMOS A PONER EL CANVAS
-document.querySelector("#panes>.right").appendChild( renderer.domElement );
 
 //q majos son, q tienen los controles built in
 const controls = new OrbitControls( camera, renderer.domElement );
@@ -59,6 +67,16 @@ function animate() {
 }
 renderer.setAnimationLoop( animate ); //claro, por eso creamos un método para renderizar nuestro cubo
 document.getElementById("knitBtn").addEventListener("click", generateMesh);
+
+//para q sea responsive dentro de lo q cabe
+window.addEventListener('resize', () => {
+  const width = container.clientWidth;
+  const height = container.clientHeight;
+
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+});
 
 
 
@@ -306,6 +324,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       {
         disp = 0;
         curr_direction = DIRECTION.AV
+        roundInfo.lastRoundJoined = true
       }
 
       //primero toda la capa de abajo
@@ -396,7 +415,9 @@ function generateRound(indices, positions, stitches, roundInfo)
           roundInfo.currRoundStitches.push(positions.length/3)
           
           if (roundInfo.lastRoundJoined && stitches.includes(TURN))
+          {
             placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1, 0.05)
+          }
           
           
           else
@@ -462,11 +483,11 @@ function refreshGeometry(positions, indices)
   scene.clear();
 
   const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
 
-    geometry.setIndex(indices);
+  geometry.setIndex(indices);
 
-      const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshStandardMaterial({
   color: 0x8A2BE2,
   //wireframe: true,
   flatShading: true,
@@ -479,7 +500,7 @@ function refreshGeometry(positions, indices)
   const mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
 
-  const edges = new THREE.EdgesGeometry(geometry);
+  const edges = new THREE.EdgesGeometry(geometry, 1);
   const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
 
   const wireframe = new THREE.LineSegments(edges, lineMaterial);
