@@ -14,6 +14,7 @@ const SIZES_Y ={
 const TURN = "turn";
 const JOIN = "join";
 const MAGICRING = "mr";
+const BRACKETS = {open: "(", close: ")"};
 const CH = "ch";
 const SKIP = "skip";
 
@@ -181,84 +182,29 @@ function processRounds(input)
           roundInfo.currRoundOUT = 0;
   
           //traducimos la vuelta
-          var puntosOut = [];
-          var j = nRndWords;
-          while (j < puntosIN.length && !errorFound)
+          var puntosOut = processRound(roundInfo, closed, puntosIN, nRndWords, false)
+          if (puntosOut == -1)
+            errorFound = true;
+
+          else
           {
-            if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN && puntosIN[j]!= TURN)
+            //si son varias vueltas:
+            for(var j = 0; j < nReps; j++)
             {
-              alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
-              errorFound = true;
+              roundsOUT.push(puntosOut.slice());
             }
-            else if(puntosIN[j]== JOIN)
-            {
-              if (j < puntosIN.length -1)
-              {
-                alert("Error en la vuelta " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
-                errorFound = true;
-              }
-              else if (!closed.isClosed)  //calculamos el radio
-              {
-                closed.isClosed = true;
-                closed.radious = SIZE_X / (2 * Math.sin(Math.PI /roundInfo.currRoundOUT)) 
-              }
-              puntosOut.push(JOIN)
-              j++;
-            }
-            else if(puntosIN[j]== TURN)
-            {
-              puntosOut.push(TURN);
-              j++;
-            }
-  
-            else
-            {
-              var repeat = 1;
-              var st = puntosIN[j];
-              j++;
-              if(parseInt(puntosIN[j],10).toString()===puntosIN[j]) //esto es una manera fancy de comprobar q es un numero
-              {
-                repeat = parseInt(puntosIN[j], 10);
-                j++;
-  
-              }
-              puntosOut.push(...Array(repeat).fill(st)); //metemos el punto ese numero de veces
-              //contamos el punto como in y como out
-              if(st != CH)
-              {
-                roundInfo.currRoundIN += repeat;
-              }
-              if (st != SKIP)
-              {
-                roundInfo.currRoundOUT += repeat;
-              }
-  
-              if (roundInfo.currRoundIN > roundInfo.prevRoundOUT)
-              {
-                errorFound = true;
-                alert("número incorrecto de puntos en la vuelta " + (i+1) + ". Revise sus cálculos.");
-              }
-  
-            }
+            nVueltas+= nReps;
+
+            console.log(puntosOut)
+            console.log(roundsOUT)
           }
-          
-          //si son varias vueltas:
-          for(j = 0; j < nReps; j++)
-          {
-            roundsOUT.push(puntosOut.slice());
-          }
-          nVueltas+= nReps;
-    
         }
       }
-     
-
-    }
     i++
+    }
 
-    
   }
-
+  
   if(!errorFound)
   {
     return roundsOUT;
@@ -267,6 +213,84 @@ function processRounds(input)
   else
     return -1;
 }
+
+function processRound(roundInfo, closed, puntosIN, startIndex, inInParenthesis)
+{
+  var j = startIndex
+  var puntosOut = []
+  var errorFound
+  while (j < puntosIN.length && !errorFound)
+  {
+    if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN && puntosIN[j]!= TURN && puntosIN[j]!= BRACKETS.open && puntosIN[j]!= BRACKETS.close)
+    {
+      alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
+      errorFound = true;
+    }
+    else if(puntosIN[j]== JOIN)
+    {
+      if (j < puntosIN.length -1)
+      {
+        alert("Error en la vuelta " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
+        errorFound = true;
+      }
+      else if (!closed.isClosed)  //calculamos el radio
+      {
+        closed.isClosed = true;
+        closed.radious = SIZE_X / (2 * Math.sin(Math.PI /roundInfo.currRoundOUT)) 
+      }
+      puntosOut.push(JOIN)
+      j++;
+    }
+    else if(puntosIN[j]== TURN)
+    {
+      puntosOut.push(TURN);
+      j++;
+    }
+
+    else if(puntosIN[j]== BRACKETS.open)
+    {
+      
+
+    }
+
+    else
+    {
+      var repeat = 1;
+      var st = puntosIN[j];
+      j++;
+      if(parseInt(puntosIN[j],10).toString()===puntosIN[j]) //esto es una manera fancy de comprobar q es un numero
+      {
+        repeat = parseInt(puntosIN[j], 10);
+        j++;
+
+      }
+      puntosOut.push(...Array(repeat).fill(st)); //metemos el punto ese numero de veces
+      //contamos el punto como in y como out
+      if(st != CH)
+      {
+        roundInfo.currRoundIN += repeat;
+      }
+      if (st != SKIP)
+      {
+        roundInfo.currRoundOUT += repeat;
+      }
+
+      if (roundInfo.currRoundIN > roundInfo.prevRoundOUT)
+      {
+        errorFound = true;
+        alert("número incorrecto de puntos en la vuelta " + (i+1) + ". Revise sus cálculos.");
+      }
+
+    }
+  }
+
+  if (!errorFound)
+    return puntosOut
+  else
+    return -1
+
+}
+
 
 function validateRoundHeader(puntosIN, nVueltas)
 {
