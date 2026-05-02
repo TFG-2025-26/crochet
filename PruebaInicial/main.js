@@ -201,7 +201,7 @@ function processRounds(input)
             alert("error en la vuelta " + (nVueltas) + ": " + err.message)
             return -1;
           }
-          
+
           if (result.puntosOut[result.puntosOut.length - 1] === JOIN && !closed.isClosed) {
             closed.isClosed = true;
             closed.radious =
@@ -223,6 +223,7 @@ function processRounds(input)
     i++
 
   }
+  console.log(roundsOUT);
 
   if(!errorFound)
   {
@@ -268,9 +269,7 @@ function processFirstRound(puntosIN, startIndex)
     else if (puntosIN[j] === JOIN || puntosIN[j] === TURN) {
 
       if (j < puntosIN.length - 1) {
-        throw new Error(
-            `Join o Turn solamente pueden ser usados al final de una vuelta.`
-        );
+        throw new Error(`Join o Turn solamente pueden ser usados al final de una vuelta.`);
       }
 
       puntosOut.push(puntosIN[j]);
@@ -322,20 +321,63 @@ function processRound(puntosIN, startIndex, inInParenthesis) {
     }
     else if (puntosIN[j] === BRACKETS.open) {
       const result = processRound(puntosIN, j+1, true);
-      //TODO
+
+      j = result.j + 1;
+      if (puntosIN[j] === "tog")
+      {
+        currRoundIN += result.currRoundIN;
+        currRoundOUT += 1;
+
+        puntosOut.push(puntosIN[j]);
+        puntosOut.push(result.puntosOut);
+        j++;
+      }
+
+      else if (puntosIN.length > j+2 && puntosIN[j] === "in" && puntosIN[j+1] === "same" && puntosIN[j+2] === "st")
+      {
+        currRoundIN += 1;
+        currRoundOUT += result.currRoundOUT;
+
+        puntosOut.push("insamest");
+        puntosOut.push(result.puntosOut);
+        j+=3;
+      }
+
+      else
+      {
+        var repeat = 1;
+        if (puntosIN[j] === "x")
+        {
+          j++
+          if (j < puntosIN.length && parseInt(puntosIN[j], 10).toString() === puntosIN[j]) {
+            repeat = parseInt(puntosIN[j], 10);
+            j++;
+          }
+        }
+
+        for (var x = 0; x < repeat; x++)
+        {
+          puntosOut = puntosOut.concat(result.puntosOut);
+        }
+
+        currRoundIN += result.currRoundIN * repeat;
+        currRoundOUT += result.currRoundOUT * repeat;
+
+      }
+
+
     }
     else if (puntosIN[j] === BRACKETS.close) {
       if (inInParenthesis) {
         return {
           puntosOut,
           currRoundIN,
-          currRoundOUT
+          currRoundOUT,
+          j
         };
       }
 
-      throw new Error(
-          `Uy, este paréntesis ')' no tiene pareja. ¿Te has olvidado de '(' ?`
-      );
+      throw new Error(`Uy, este paréntesis ')' no tiene pareja. ¿Te has olvidado de '(' ?`);
     }
     else {
       const result = handleStitch(puntosIN, j);
@@ -348,15 +390,14 @@ function processRound(puntosIN, startIndex, inInParenthesis) {
   }
 
   if (inInParenthesis) {  //no debería nunca llegar aqui
-    throw new Error(
-        `Abres un paréntesis que nunca cierras`
-    );
+    throw new Error(`Abres un paréntesis que nunca cierras`);
   }
 
   return {
     puntosOut,
     currRoundIN,
-    currRoundOUT
+    currRoundOUT,
+    j
   };
 }
 
@@ -370,9 +411,7 @@ function validatePoint(stitch) {
       stitch === BRACKETS.close;
 
   if (!valid) {
-    throw new Error(
-        `Punto no reconocido: ${stitch}. Revise los puntos aceptados.`
-    );
+    throw new Error(`Punto no reconocido: ${stitch}. Revise los puntos aceptados.`);
   }
 }
 
@@ -382,10 +421,7 @@ function handleStitch(puntosIN, j) {
   const stitch = puntosIN[j];
   j++;
 
-  if (
-      j < puntosIN.length &&
-      parseInt(puntosIN[j], 10).toString() === puntosIN[j]
-  ) {
+  if (j < puntosIN.length && parseInt(puntosIN[j], 10).toString() === puntosIN[j]) {
     repeat = parseInt(puntosIN[j], 10);
     j++;
   }
@@ -431,8 +467,6 @@ function validateRoundHeader(puntosIN, nVueltas)
 
 function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 {
-  console.log(stitches)
-  console.log(closed)
   if(stitches[0] == MAGICRING)
   {
     //por ahora pues nada
