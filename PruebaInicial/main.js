@@ -147,7 +147,7 @@ function processRounds(input)
   var nVueltas = 1;
   var errorFound = false; var i = 0;
   closed.isClosed = false;
-  
+
 
   var roundInfo = {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0};
   while (i < roundsIN.length && !errorFound)
@@ -177,34 +177,53 @@ function processRounds(input)
 
         if(!errorFound)
         {
-          roundInfo.prevRoundOUT = roundInfo.currRoundOUT;
-          roundInfo.currRoundIN = 0;
-          roundInfo.currRoundOUT = 0;
   
           //traducimos la vuelta
-          var puntosOut = processRound(roundInfo, closed, puntosIN, nRndWords, false)
-          if (puntosOut == -1)
-            errorFound = true;
-
-          else
-          {
-            //si son varias vueltas:
-            for(var j = 0; j < nReps; j++)
+          var result = -1;
+          try {
+            if (nVueltas > 1)
             {
-              roundsOUT.push(puntosOut.slice());
+              result = processRound(puntosIN, nRndWords, false)
+              if (result.currRoundIN > roundInfo.prevRoundOUT)
+              {
+                throw new Error(
+                    `Hay demasiados puntos. Has contado bien el número de puntos de la vuelta anterior?`
+                );
+              }
             }
-            nVueltas+= nReps;
-
-            console.log(puntosOut)
-            console.log(roundsOUT)
+            else
+            {
+              result = processFirstRound(puntosIN, nRndWords)
+            }
           }
+          catch (err)
+          {
+            alert("error en la vuelta " + (nVueltas) + ": " + err.message)
+            return -1;
+          }
+
+          if (result.puntosOut[result.puntosOut.length - 1] === JOIN && !closed.isClosed) {
+            closed.isClosed = true;
+            closed.radious =
+                SIZE_X / (2 * Math.sin(Math.PI / result.currRoundOUT ));
+          }
+
+          //si son varias vueltas:
+          for(var j = 0; j < nReps; j++)
+          {
+            roundsOUT.push(result.puntosOut.slice());
+          }
+          nVueltas+= nReps;
+
+          roundInfo.prevRoundOUT = result.currRoundOUT;
+
         }
       }
-    i++
     }
+    i++
 
   }
-  
+
   if(!errorFound)
   {
     return roundsOUT;
@@ -214,83 +233,180 @@ function processRounds(input)
     return -1;
 }
 
-function processRound(roundInfo, closed, puntosIN, startIndex, inInParenthesis)
+function processFirstRound(puntosIN, startIndex)
 {
-  var j = startIndex
-  var puntosOut = []
-  var errorFound
-  while (j < puntosIN.length && !errorFound)
-  {
-    if (!(puntosIN[j] in SIZES_Y) && puntosIN[j] != JOIN && puntosIN[j]!= TURN && puntosIN[j]!= BRACKETS.open && puntosIN[j]!= BRACKETS.close)
+  let j = startIndex;
+  let puntosOut = [];
+  let currRoundOUT = 0;
+  let currRoundIN = Number.MAX_SAFE_INTEGER;
+
+
+  while (j < puntosIN.length) {
+    if(puntosIN[j] === CH)
     {
-      alert("Punto no reconocido en vuelta " + (i+1) + ": " + puntosIN[j] + ". Revise los puntos aceptados.");
-      errorFound = true;
-    }
-    else if(puntosIN[j]== JOIN)
-    {
-      if (j < puntosIN.length -1)
-      {
-        alert("Error en la vuelta " + (i+1)+ ". Join solamente puede ser usado al final de una vuelta. Revise el formato de vuelta");
-        errorFound = true;
-      }
-      else if (!closed.isClosed)  //calculamos el radio
-      {
-        closed.isClosed = true;
-        closed.radious = SIZE_X / (2 * Math.sin(Math.PI /roundInfo.currRoundOUT)) 
-      }
-      puntosOut.push(JOIN)
-      j++;
-    }
-    else if(puntosIN[j]== TURN)
-    {
-      puntosOut.push(TURN);
-      j++;
+      const result = handleStitch(puntosIN, j);
+
+      j = result.j;
+      currRoundOUT += result.stitches.length + 1;
+      puntosOut.push(...result.stitches);
     }
 
-    else if(puntosIN[j]== BRACKETS.open)
+    else if (puntosIN[j] === MAGICRING)
     {
-      
+      if (puntosIN.length != 1)
+      {
+        throw new Error(
+            `si usas mr (Magic ring), la vuelta debe acabar (sin join ni turn, ni ningun otro punto).`
+        );
 
+      }
+      currRoundOUT = Number.MAX_SAFE_INTEGER;
+      puntosOut.push(MAGICRING)
+      j++
+    }
+
+    else if (puntosIN[j] === JOIN || puntosIN[j] === TURN) {
+
+      if (j < puntosIN.length - 1) {
+        throw new Error(
+            `Join o Turn solamente pueden ser usados al final de una vuelta.`
+        );
+      }
+
+      puntosOut.push(puntosIN[j]);
+      j++
     }
 
     else
     {
-      var repeat = 1;
-      var st = puntosIN[j];
-      j++;
-      if(parseInt(puntosIN[j],10).toString()===puntosIN[j]) //esto es una manera fancy de comprobar q es un numero
-      {
-        repeat = parseInt(puntosIN[j], 10);
-        j++;
-
-      }
-      puntosOut.push(...Array(repeat).fill(st)); //metemos el punto ese numero de veces
-      //contamos el punto como in y como out
-      if(st != CH)
-      {
-        roundInfo.currRoundIN += repeat;
-      }
-      if (st != SKIP)
-      {
-        roundInfo.currRoundOUT += repeat;
-      }
-
-      if (roundInfo.currRoundIN > roundInfo.prevRoundOUT)
-      {
-        errorFound = true;
-        alert("número incorrecto de puntos en la vuelta " + (i+1) + ". Revise sus cálculos.");
-      }
-
+      throw new Error(
+          `En la primera vuelta solo se permite el uso de ch y mr (uno u otro, no ambos). No se pueden usar tampoco parentésis.`
+      );
     }
+
   }
 
-  if (!errorFound)
-    return puntosOut
-  else
-    return -1
+  return { puntosOut,
+    currRoundIN,
+    currRoundOUT};
 
 }
 
+function processRound(puntosIN, startIndex, inInParenthesis) {
+  let j = startIndex;
+  let puntosOut = [];
+
+  let currRoundIN = 0;
+  let currRoundOUT = 0;
+
+
+  while (j < puntosIN.length) {
+    validatePoint(puntosIN[j]);
+
+    if (puntosIN[j] === JOIN || puntosIN[j] === TURN) {
+
+      if (j < puntosIN.length - 1) {
+        throw new Error(
+            `Join o Turn solamente pueden ser usados al final de una vuelta.`
+        );
+      }
+
+      if (inInParenthesis) {
+        throw new Error(
+            `Tienes que cerrar el paréntesis antes de usar Join o Turn`
+        );
+      }
+
+      puntosOut.push(puntosIN[j]);
+      j++
+    }
+    else if (puntosIN[j] === BRACKETS.open) {
+      const result = processRound(puntosIN, j+1, true);
+      //TODO
+    }
+    else if (puntosIN[j] === BRACKETS.close) {
+      if (inInParenthesis) {
+        return {
+          puntosOut,
+          currRoundIN,
+          currRoundOUT
+        };
+      }
+
+      throw new Error(
+          `Uy, este paréntesis ')' no tiene pareja. ¿Te has olvidado de '(' ?`
+      );
+    }
+    else {
+      const result = handleStitch(puntosIN, j);
+
+      j = result.j;
+      currRoundIN += result.currRoundIN;
+      currRoundOUT += result.currRoundOUT;
+      puntosOut.push(...result.stitches);
+    }
+  }
+
+  if (inInParenthesis) {  //no debería nunca llegar aqui
+    throw new Error(
+        `Abres un paréntesis que nunca cierras`
+    );
+  }
+
+  return {
+    puntosOut,
+    currRoundIN,
+    currRoundOUT
+  };
+}
+
+
+function validatePoint(stitch) {
+  const valid =
+      stitch in SIZES_Y ||
+      stitch === JOIN ||
+      stitch === TURN ||
+      stitch === BRACKETS.open ||
+      stitch === BRACKETS.close;
+
+  if (!valid) {
+    throw new Error(
+        `Punto no reconocido: ${stitch}. Revise los puntos aceptados.`
+    );
+  }
+}
+
+function handleStitch(puntosIN, j) {
+  let repeat = 1;
+  var currRoundIN = 0; var currRoundOUT = 0;
+  const stitch = puntosIN[j];
+  j++;
+
+  if (
+      j < puntosIN.length &&
+      parseInt(puntosIN[j], 10).toString() === puntosIN[j]
+  ) {
+    repeat = parseInt(puntosIN[j], 10);
+    j++;
+  }
+
+  const stitches = Array(repeat).fill(stitch);
+
+  if (stitch !== CH) {
+    currRoundIN += repeat;
+  }
+
+  if (stitch !== SKIP && stitch !== CH) {
+    currRoundOUT += repeat;
+  }
+
+  return {
+    j,
+    currRoundIN,
+    currRoundOUT,
+    stitches
+  };
+}
 
 function validateRoundHeader(puntosIN, nVueltas)
 {
@@ -315,6 +431,8 @@ function validateRoundHeader(puntosIN, nVueltas)
 
 function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 {
+  console.log(stitches)
+  console.log(closed)
   if(stitches[0] == MAGICRING)
   {
     //por ahora pues nada
@@ -385,7 +503,8 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
     }
 
   }
-  
+
+
 
 }
 
@@ -406,7 +525,7 @@ function generateRound(indices, positions, stitches, roundInfo)
         curr_direction = DIRECTION.AV
         roundInfo.lastRoundJoined = true
       }
-      
+
       else if (stitches[currStitch] == TURN)
       {
         curr_direction = DIRECTION.RET
@@ -416,12 +535,12 @@ function generateRound(indices, positions, stitches, roundInfo)
       else  //si es un punto normal
       {
         //TODO: COMPROBAR CHAINS TO PLACE ETC
-    
+
         var prevBotom1 = 0;
         var prevBotom2 = 0;
         var prevtop = 0;
         var actTop = 0;
-        
+
         if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
         {
           prevBotom1 = roundInfo.prevRoundStitches[roundInfo.currRoundIN];
@@ -433,24 +552,24 @@ function generateRound(indices, positions, stitches, roundInfo)
           prevBotom1 = roundInfo.prevRoundStitches[roundInfo.prevRoundOUT - roundInfo.currRoundIN];
           prevBotom2 = roundInfo.prevRoundStitches[roundInfo.prevRoundOUT - roundInfo.currRoundIN -1];
         }
-          
+
         if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
         {
           roundInfo.currRoundStitches.push(positions.length/3)
-          
+
           if (roundInfo.lastRoundJoined && stitches.includes(TURN))
           {
             placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1, 0.05)
           }
-          
-          
+
+
           else
             placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1)
-          
+
         }
         prevtop = roundInfo.currRoundStitches.at(-1)
 
-    
+
         if(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN) //si el siguiente no es un join, ponemos el punto nuevo
         {
           roundInfo.currRoundStitches.push(positions.length/3)
@@ -463,8 +582,8 @@ function generateRound(indices, positions, stitches, roundInfo)
           actTop = roundInfo.currRoundStitches[0]
           roundInfo.currRoundStitches.push(roundInfo.currRoundStitches[0])
         }
-        
-    
+
+
         //anyways, hacemos nuestros triangulos
         makeTriangles(indices, prevBotom1, prevBotom2, prevtop, actTop)
 
@@ -474,7 +593,7 @@ function generateRound(indices, positions, stitches, roundInfo)
       }
     }
     currStitch++
-  } 
+  }
 
 }
 
