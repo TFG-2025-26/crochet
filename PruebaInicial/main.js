@@ -201,11 +201,11 @@ function processRounds(input)
             alert("error en la vuelta " + (nVueltas) + ": " + err.message)
             return -1;
           }
-
+          
           if (result.puntosOut[result.puntosOut.length - 1] === JOIN && !closed.isClosed) {
             closed.isClosed = true;
             closed.radious =
-                SIZE_X / (2 * Math.sin(Math.PI / result.currRoundOUT ));
+                SIZE_X / (2 * Math.sin(Math.PI / result.currRoundOUT));
           }
 
           //si son varias vueltas:
@@ -247,7 +247,7 @@ function processFirstRound(puntosIN, startIndex)
       const result = handleStitch(puntosIN, j);
 
       j = result.j;
-      currRoundOUT += result.stitches.length + 1;
+      currRoundOUT += result.stitches.length;
       puntosOut.push(...result.stitches);
     }
 
