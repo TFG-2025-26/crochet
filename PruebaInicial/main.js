@@ -208,10 +208,11 @@ function processRounds(input)
                 SIZE_X / (2 * Math.sin(Math.PI / result.currRoundOUT));
           }
 
+          var round = removeRedundacies(result.puntosOut);
           //si son varias vueltas:
           for(var j = 0; j < nReps; j++)
           {
-            roundsOUT.push(result.puntosOut.slice());
+            roundsOUT.push(round.slice());
           }
           nVueltas+= nReps;
 
@@ -245,7 +246,7 @@ function processFirstRound(puntosIN, startIndex)
   while (j < puntosIN.length) {
     if(puntosIN[j] === CH)
     {
-      const result = handleStitch(puntosIN, j);
+      const result = parseStitch(puntosIN, j);
 
       j = result.j;
       currRoundOUT += result.stitches.length;
@@ -380,7 +381,7 @@ function processRound(puntosIN, startIndex, inInParenthesis) {
       throw new Error(`Uy, este paréntesis ')' no tiene pareja. ¿Te has olvidado de '(' ?`);
     }
     else {
-      const result = handleStitch(puntosIN, j);
+      const result = parseStitch(puntosIN, j);
 
       j = result.j;
       currRoundIN += result.currRoundIN;
@@ -405,6 +406,7 @@ function processRound(puntosIN, startIndex, inInParenthesis) {
 function validatePoint(stitch) {
   const valid =
       stitch in SIZES_Y ||
+      stitch === SKIP ||
       stitch === JOIN ||
       stitch === TURN ||
       stitch === BRACKETS.open ||
@@ -415,7 +417,7 @@ function validatePoint(stitch) {
   }
 }
 
-function handleStitch(puntosIN, j) {
+function parseStitch(puntosIN, j) {
   let repeat = 1;
   var currRoundIN = 0; var currRoundOUT = 0;
   const stitch = puntosIN[j];
@@ -458,11 +460,93 @@ function validateRoundHeader(puntosIN, nVueltas)
   }
 
   //vemos si acaba en join o turn
-  if(!closed.isClosed && puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
-    error = ("Error al final de la vuelta " + nVueltas + ". Trabajando en plano, una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
+  if(puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
+    error = ("Error al final de la vuelta " + nVueltas + ". Una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
 
   return error;
 
+}
+
+function removeRedundacies(stitches)
+{
+  var cleaned = [];
+  for (let i = 0; i < stitches.length; i++)
+  {
+    if (stitches[i] === "tog" || stitches[i] === "insamest")
+    {
+      var insideRedundant = removeRedundacies(stitches[i+1]);
+      var insideCleaned = []
+      for(let j = 0; j < insideRedundant.length; j++)
+      {
+        if (insideRedundant[j] in SIZES_Y)
+        {
+          insideCleaned.push(insideRedundant[j]);
+        }
+
+        else if (insideRedundant[j] === stitches[i])
+        {
+          insideCleaned = insideCleaned.concat(insideRedundant[j+1]);
+          j++
+        }
+
+        else  //si es tog dentro de insamest o viceversa
+        {
+          var st = findSmaller(insideRedundant[j+1]);
+          insideCleaned.push(st)
+          j++
+
+        }
+
+
+      }
+      if (insideCleaned.length > 1)
+      {
+        cleaned.push(stitches[i]);
+        cleaned.push(insideCleaned);
+      }
+      else
+      {
+        cleaned = cleaned.concat(insideCleaned);
+
+      }
+      i++
+    }
+    else
+    {
+      cleaned.push(stitches[i]);
+    }
+  }
+
+  return cleaned;
+
+}
+
+function findSmaller(stitches)
+{
+  var smallest = "dc"
+  for(let i = 0; i < stitches.length; i++)
+  {
+    if(stitches[i] in SIZES_Y)
+    {
+      if (SIZES_Y[stitches[i]] < SIZES_Y[smallest])
+      {
+        smallest = stitches[i];
+      }
+    }
+    else if (stitches[i] === "tog" || stitches[i] === "insamest")
+    {
+      var res = findSmaller(stitches[i+1]);
+      if (SIZES_Y[res] < SIZES_Y[smallest])
+      {
+        smallest = res;
+      }
+      i++
+
+    }
+
+  }
+
+  return smallest;
 }
 
 function generateFirstRound(roundInfo, closed, stitches, positions, indices)
@@ -565,6 +649,10 @@ function generateRound(indices, positions, stitches, roundInfo)
         curr_direction = DIRECTION.RET
         roundInfo.lastRoundJoined = false
       }
+      else if (stitches[currStitch] == SKIP)
+      {
+        roundInfo.currRoundIN++;
+      }
 
       else  //si es un punto normal
       {
@@ -661,6 +749,7 @@ function handleNormalStitch(indices, positions, stitch, prevBottom1, prevBottom2
 
 function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, prevTop, roundInfo, join = false)
 {
+  //TODO contemplar insamest dentro de insamest y tog dentro de insamest
   var radious = SIZE_X / (2 * Math.sin(Math.PI / (stitches.length+1)));
   var distance, vector;
   var sign = curr_direction == DIRECTION.RET ? -1 : 1;
