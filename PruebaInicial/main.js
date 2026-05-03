@@ -661,7 +661,7 @@ function handleNormalStitch(indices, positions, stitch, prevBottom1, prevBottom2
 
 function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, prevTop, roundInfo, join = false)
 {
-  var radious = SIZE_X / (2 * Math.sin(Math.PI / (2* stitches.length)));
+  var radious = SIZE_X / (2 * Math.sin(Math.PI / (stitches.length+1)));
   var distance, vector;
   var sign = curr_direction == DIRECTION.RET ? -1 : 1;
 
@@ -673,13 +673,22 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
       new THREE.Vector3(positions[prevBottom2 * 3], positions[prevBottom2 * 3 +1], positions[prevBottom2 * 3 +2]),
       radious, sign);
 
+
   const startAngle = Math.atan2(
-      positions[prevBottom1 * 3] - center[0],
-      positions[prevBottom1 * 3 + 2] - center[2]);
+      positions[prevBottom1 * 3 + 2] - center[2],
+      positions[prevBottom1 * 3] - center[0]);
 
   const endAngle = Math.atan2(
       positions[prevBottom2 * 3 + 2] - center[2],
       positions[prevBottom2 * 3] - center[0]);
+
+  let angleSweep = endAngle - startAngle;
+  if (Math.abs(angleSweep) > Math.PI) {
+    angleSweep = angleSweep > 0 ? angleSweep - 2*Math.PI : angleSweep + 2*Math.PI;
+  }
+
+  // Normalizar para que vaya en la dirección correcta según 'sign'
+  const targetSweep = sign * 2 * Math.PI / (stitches.length +1);
 
 
   var bottom1 = prevBottom1;
@@ -691,13 +700,13 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
   {
     //const inside = SIZES_Y[stitches[i]] ** 2 - radious ** 2;
     //const height = Math.sqrt(Math.max(0, inside));
-    var theta = ((i * Math.PI) / stitches.length * sign);
+    var theta = startAngle + (i+1)* targetSweep;
 
 
     if (i == stitches.length - 1)
     {
       var bottom2 = prevBottom2;
-      //theta = endAngle;
+      theta = endAngle;
     }
     else
     {
