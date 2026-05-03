@@ -568,7 +568,7 @@ function generateRound(indices, positions, stitches, roundInfo)
 
       else  //si es un punto normal
       {
-        //TODO: COMPROBAR CHAINS TO PLACE ETC
+        //TODO: CHAINS
 
         var prevBotom1 = 0;
         var prevBotom2 = 0;
@@ -589,41 +589,44 @@ function generateRound(indices, positions, stitches, roundInfo)
 
         if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
         {
+          if (stitches[currStitch] in SIZES_Y)
+            var size_y = SIZES_Y[stitches[currStitch]]
+
+          else if (stitches[currStitch] == "tog" || stitches[currStitch] == "insamest")
+            var size_y = SIZES_Y[stitches[currStitch +1][0]]
+
           roundInfo.currRoundStitches.push(positions.length/3)
 
           if (roundInfo.lastRoundJoined && stitches.includes(TURN))
           {
-            placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1, 0.05)
+            placeVertexStitch(positions, size_y, prevBotom1, 0.05)
           }
 
 
           else
-            placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom1)
+            placeVertexStitch(positions, size_y, prevBotom1)
 
         }
         prevtop = roundInfo.currRoundStitches.at(-1)
 
+        var join = !(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN)
 
-        if(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN) //si el siguiente no es un join, ponemos el punto nuevo
+        if (stitches[currStitch] == "insamest")
         {
-          roundInfo.currRoundStitches.push(positions.length/3)
-          placeVertexStitch(positions, SIZES_Y[stitches[currStitch]], prevBotom2)
-          actTop = positions.length/3 - 1;
+          currStitch++
+          handleInSameSt(indices, positions, stitches[currStitch], prevBotom1, prevBotom2, prevtop, roundInfo, join)
+
+        }
+        else if(stitches[currStitch] == "tog")
+        {
+
+        }
+        else
+        {
+          handleNormalStitch(indices, positions, stitches[currStitch], prevBotom1, prevBotom2, prevtop, roundInfo, join)
         }
 
-        else  //si si q es un join, unimos
-        {
-          actTop = roundInfo.currRoundStitches[0]
-          roundInfo.currRoundStitches.push(roundInfo.currRoundStitches[0])
-        }
 
-
-        //anyways, hacemos nuestros triangulos
-        makeTriangles(indices, prevBotom1, prevBotom2, prevtop, actTop)
-
-        //y añadimos los puntos
-        roundInfo.currRoundIN ++;
-        roundInfo.currRoundOUT ++;
       }
     }
     currStitch++
@@ -631,15 +634,156 @@ function generateRound(indices, positions, stitches, roundInfo)
 
 }
 
+function handleNormalStitch(indices, positions, stitch, prevBottom1, prevBottom2, prevTop, roundInfo, join= false)
+{
+
+  if (join)  //si si q es un join, unimos
+  {
+    var actTop = roundInfo.currRoundStitches[0]
+    roundInfo.currRoundStitches.push(roundInfo.currRoundStitches[0])
+  }
+  else
+  {
+    roundInfo.currRoundStitches.push(positions.length/3)
+    placeVertexStitch(positions, SIZES_Y[stitch], prevBottom2)
+    var actTop = positions.length/3 - 1;
+  }
+
+
+  //anyways, hacemos nuestros triangulos
+  makeTriangles(indices, prevBottom1, prevBottom2, prevTop, actTop)
+
+  //y añadimos los puntos
+  roundInfo.currRoundIN ++;
+  roundInfo.currRoundOUT ++;
+
+}
+
+function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, prevTop, roundInfo, join = false)
+{
+  var radious = SIZE_X / (2 * Math.sin(Math.PI / (2* stitches.length)));
+  var distance, vector, center;
+  [distance, vector, center] = distanceBetweenVertex(positions, prevBottom1, prevBottom2);
+  var step = distance/stitches.length;
+  var bottom1 = prevBottom1;
+  var top1 = prevTop;
+
+  for (var i = 0; i < stitches.length; i++)
+  {
+    var height = Math.sqrt(SIZES_Y[stitches[i]] * SIZES_Y[stitches[i]] - radious*radious);
+    const theta = -Math.PI / 2 + (i * Math.PI) / stitches.length;
+
+    console.log({
+      SIZE_X,
+      radius: radious,
+      sizeY: SIZES_Y[stitches[i]],
+      expr: SIZES_Y[stitches[i]] ** 2 - radious ** 2
+    });
+
+    if (i == stitches.length - 1)
+    {
+      var bottom2 = prevBottom2;
+    }
+    else
+    {
+      placeVertexWithOffset(positions, bottom1, step * vector[0], step * vector[1], step * vector[2]);
+      var bottom2 = positions.length/3 - 1;
+    }
+
+    //colocamos el top q queda
+    placeVertexWithOffsetResectPoint(positions, center, radious * Math.cos(theta), height, radious * Math.sin(theta));
+    var top2 = positions.length/3 - 1;
+
+    console.log({
+      bottom1,
+      bottom2,
+      top1,
+      top2
+    });
+
+    makeTriangles(indices, bottom1, bottom2, top1, top2)
+
+
+    bottom1 = bottom2
+    top1 = top2
+
+    roundInfo.currRoundStitches.push(top2)
+    roundInfo.currRoundOUT ++;
+
+  }
+  roundInfo.currRoundIN ++;
+
+}
+
+function handleTog()
+{
+
+}
+
+function distanceBetweenVertex(positions, vertex1, vertex2)
+{
+  const baseIndex1 = vertex1 * 3;
+
+  var x1 = positions[baseIndex1];
+  var y1 = positions[baseIndex1 + 1];
+  var z1 = positions[baseIndex1 + 2];
+
+  const baseIndex2 = vertex2 * 3;
+
+  var x2 = positions[baseIndex2];
+  var y2 = positions[baseIndex2 + 1];
+  var z2 = positions[baseIndex2 + 2];
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const dz = z2 - z1;
+
+  const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+  // Unit vector (avoid division by zero)
+  const unitVector =
+      distance === 0
+          ? [0, 0, 0]
+          : [dx / distance, dy / distance, dz / distance];
+
+  const center = [x1 + unitVector[0] * distance/2, y1 + unitVector[1]*distance/2, z1 + unitVector[2]*distance/2 ];
+
+  return[distance, unitVector, center]
+
+}
+
 function placeVertexStitch(positions, sizeY, bottom, offset = 0)
 {
   const baseIndex = bottom * 3;
-          
+
   const x = positions[baseIndex];
   const y = positions[baseIndex + 1];
   const z = positions[baseIndex + 2];
-  
+
   positions.push(x + offset, y + sizeY, z + offset);
+
+}
+
+function placeVertexWithOffset(positions, base, offsetX, offsetY, offsetZ)
+{
+  const baseIndex = base * 3;
+
+  const x = positions[baseIndex];
+  const y = positions[baseIndex + 1];
+  const z = positions[baseIndex + 2];
+
+  positions.push(x + offsetX, y + offsetY, z + offsetZ);
+
+}
+
+function placeVertexWithOffsetResectPoint(positions, base, offsetX, offsetY, offsetZ)
+{
+
+  const x = base[0];
+  const y = base[1];
+  const z = base[2];
+
+  positions.push(x + offsetX, y + offsetY, z + offsetZ);
 
 }
 
