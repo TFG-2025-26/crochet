@@ -459,7 +459,7 @@ function validateRoundHeader(puntosIN, nVueltas)
 
   //vemos si acaba en join o turn
   if(!closed.isClosed && puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
-    error = ("Error al final de la vuelta " + (i+1) + ". Trabajando en plano, una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
+    error = ("Error al final de la vuelta " + nVueltas + ". Trabajando en plano, una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
 
   return error;
 
@@ -663,22 +663,29 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
 {
   var radious = SIZE_X / (2 * Math.sin(Math.PI / (2* stitches.length)));
   var distance, vector, center;
+  var sign = curr_direction == DIRECTION.RET ? 1 : -1;
+
   [distance, vector, center] = distanceBetweenVertex(positions, prevBottom1, prevBottom2);
   var step = distance/stitches.length;
+
+  const startAngle = Math.atan2(
+      positions[prevBottom1 * 3] - center[0],
+      positions[prevBottom1 * 3 + 2] - center[2]
+
+  );
+  console.log(startAngle);
+
   var bottom1 = prevBottom1;
   var top1 = prevTop;
 
+
+
   for (var i = 0; i < stitches.length; i++)
   {
-    var height = Math.sqrt(SIZES_Y[stitches[i]] * SIZES_Y[stitches[i]] - radious*radious);
-    const theta = -Math.PI / 2 + (i * Math.PI) / stitches.length;
+    const inside = SIZES_Y[stitches[i]] ** 2 - radious ** 2;
+    const height = Math.sqrt(Math.max(0, inside));
+    const theta = startAngle + ((i * Math.PI) / stitches.length * sign);
 
-    console.log({
-      SIZE_X,
-      radius: radious,
-      sizeY: SIZES_Y[stitches[i]],
-      expr: SIZES_Y[stitches[i]] ** 2 - radious ** 2
-    });
 
     if (i == stitches.length - 1)
     {
