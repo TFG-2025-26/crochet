@@ -662,18 +662,25 @@ function handleNormalStitch(indices, positions, stitch, prevBottom1, prevBottom2
 function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, prevTop, roundInfo, join = false)
 {
   var radious = SIZE_X / (2 * Math.sin(Math.PI / (2* stitches.length)));
-  var distance, vector, center;
-  var sign = curr_direction == DIRECTION.RET ? 1 : -1;
+  var distance, vector;
+  var sign = curr_direction == DIRECTION.RET ? -1 : 1;
 
-  [distance, vector, center] = distanceBetweenVertex(positions, prevBottom1, prevBottom2);
+  [distance, vector] = distanceBetweenVertex(positions, prevBottom1, prevBottom2);
   var step = distance/stitches.length;
+
+
+  const center = computeCircleCenter(new THREE.Vector3(positions[prevBottom1 * 3], positions[prevBottom1 * 3 +1], positions[prevBottom1 * 3 +2]),
+      new THREE.Vector3(positions[prevBottom2 * 3], positions[prevBottom2 * 3 +1], positions[prevBottom2 * 3 +2]),
+      radious, sign);
 
   const startAngle = Math.atan2(
       positions[prevBottom1 * 3] - center[0],
-      positions[prevBottom1 * 3 + 2] - center[2]
+      positions[prevBottom1 * 3 + 2] - center[2]);
 
-  );
-  console.log(startAngle);
+  const endAngle = Math.atan2(
+      positions[prevBottom2 * 3 + 2] - center[2],
+      positions[prevBottom2 * 3] - center[0]);
+
 
   var bottom1 = prevBottom1;
   var top1 = prevTop;
@@ -682,14 +689,15 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
 
   for (var i = 0; i < stitches.length; i++)
   {
-    const inside = SIZES_Y[stitches[i]] ** 2 - radious ** 2;
-    const height = Math.sqrt(Math.max(0, inside));
-    const theta = startAngle + ((i * Math.PI) / stitches.length * sign);
+    //const inside = SIZES_Y[stitches[i]] ** 2 - radious ** 2;
+    //const height = Math.sqrt(Math.max(0, inside));
+    var theta = ((i * Math.PI) / stitches.length * sign);
 
 
     if (i == stitches.length - 1)
     {
       var bottom2 = prevBottom2;
+      //theta = endAngle;
     }
     else
     {
@@ -698,15 +706,9 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
     }
 
     //colocamos el top q queda
-    placeVertexWithOffsetResectPoint(positions, center, radious * Math.cos(theta), height, radious * Math.sin(theta));
+    placeVertexWithOffsetResectPoint(positions, center, radious * Math.cos(theta), SIZES_Y[stitches[i]], radious * Math.sin(theta));
     var top2 = positions.length/3 - 1;
-
-    console.log({
-      bottom1,
-      bottom2,
-      top1,
-      top2
-    });
+    
 
     makeTriangles(indices, bottom1, bottom2, top1, top2)
 
@@ -753,10 +755,35 @@ function distanceBetweenVertex(positions, vertex1, vertex2)
           ? [0, 0, 0]
           : [dx / distance, dy / distance, dz / distance];
 
-  const center = [x1 + unitVector[0] * distance/2, y1 + unitVector[1]*distance/2, z1 + unitVector[2]*distance/2 ];
+  return[distance, unitVector]
 
-  return[distance, unitVector, center]
+}
 
+function computeCircleCenter(A, B, radius, directionSign, up = new THREE.Vector3(0, 1, 0)) {
+
+  // 1. chord vector
+  const AB = new THREE.Vector3().subVectors(B, A);
+  const dist = AB.length();
+
+  if (dist > 2 * radius) {
+    throw new Error("No valid circle: chord longer than diameter");
+  }
+
+  const mid = new THREE.Vector3().addVectors(A, B).multiplyScalar(0.5);
+
+  const dir = AB.clone().normalize();
+
+  // perpendicular direction in plane
+  let perp = new THREE.Vector3().crossVectors(up, dir).normalize();
+
+
+  // distance from midpoint to circle center
+  const h = Math.sqrt(radius * radius - (dist * dist) / 4);
+
+  // two possible centers → choose side using sign
+  const center = mid.clone().addScaledVector(perp, h * directionSign);
+
+  return [center.x, center.y, center.z];
 }
 
 function placeVertexStitch(positions, sizeY, bottom, offset = 0)
