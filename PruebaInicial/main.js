@@ -697,10 +697,10 @@ function generateRound(indices, positions, stitches, roundInfo)
         }
         prevtop = roundInfo.currRoundStitches.at(-1)
 
-        var join = !(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN)
 
         if (stitches[currStitch] == "insamest")
         {
+          var join = !(currStitch + 2 >= stitches.length || stitches[currStitch+2] != JOIN)
           currStitch++
           handleInSameSt(indices, positions, stitches[currStitch], prevBotom1, prevBotom2, prevtop, roundInfo, join)
 
@@ -711,6 +711,7 @@ function generateRound(indices, positions, stitches, roundInfo)
         }
         else
         {
+          var join = !(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN)
           handleNormalStitch(indices, positions, stitches[currStitch], prevBotom1, prevBotom2, prevtop, roundInfo, join)
         }
 
@@ -749,7 +750,6 @@ function handleNormalStitch(indices, positions, stitch, prevBottom1, prevBottom2
 
 function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, prevTop, roundInfo, join = false)
 {
-  //TODO contemplar insamest dentro de insamest y tog dentro de insamest
   var radious = SIZE_X / (2 * Math.sin(Math.PI / (stitches.length+1)));
   var distance, vector;
   var sign = curr_direction == DIRECTION.RET ? -1 : 1;
@@ -785,28 +785,35 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
 
 
 
-  for (var i = 0; i < stitches.length; i++)
-  {
+  for (var i = 0; i < stitches.length; i++) {
     //const inside = SIZES_Y[stitches[i]] ** 2 - radious ** 2;
     //const height = Math.sqrt(Math.max(0, inside));
-    var theta = startAngle + (i+1)* targetSweep;
+    var theta = startAngle + (i + 1) * targetSweep;
 
 
-    if (i == stitches.length - 1)
-    {
+    if (i == stitches.length - 1) {
+      //TODO join
       var bottom2 = prevBottom2;
       theta = endAngle;
+    } else {
+      placeVertexWithOffset(positions, bottom1, step * vector[0], step * vector[1], step * vector[2]);
+      var bottom2 = positions.length / 3 - 1;
+    }
+
+
+    if (i == stitches.length - 1 && join)
+    {
+
+      var top2 = roundInfo.currRoundStitches[0]
+
     }
     else
     {
-      placeVertexWithOffset(positions, bottom1, step * vector[0], step * vector[1], step * vector[2]);
-      var bottom2 = positions.length/3 - 1;
+      //colocamos el top q queda
+      placeVertexWithOffsetResectPoint(positions, center, radious * Math.cos(theta), SIZES_Y[stitches[i]], radious * Math.sin(theta));
+      var top2 = positions.length/3 - 1;
     }
 
-    //colocamos el top q queda
-    placeVertexWithOffsetResectPoint(positions, center, radious * Math.cos(theta), SIZES_Y[stitches[i]], radious * Math.sin(theta));
-    var top2 = positions.length/3 - 1;
-    
 
     makeTriangles(indices, bottom1, bottom2, top1, top2)
 
