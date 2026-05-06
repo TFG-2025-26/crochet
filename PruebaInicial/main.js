@@ -135,6 +135,7 @@ function generateMesh()
     
     generateRound(indices, positions, stitches, roundInfo)
     relaxAndAdjustStitches(positions, roundInfo)
+    //laplacianRelaxation(positions, roundInfo)
     
   }
 
@@ -579,8 +580,6 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       curr_direction = DIRECTION.AV
       roundInfo.lastRoundJoined = true
     }
-    console.log(disp)
-    console.log(closed.radious);
 
     //el primer punto
     let x = (closed.radious) * Math.cos(0);
@@ -593,7 +592,6 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       let ang = i * theta;
       x = (closed.radious + i *disp) * Math.cos(ang);
       z = (closed.radious + i *disp) * Math.sin(ang);
-      console.log(i * disp + closed.radious, x, z)
       roundInfo.currRoundStitches.push(positions.length/3)
       positions.push(x, SIZES_Y[stitches[i]], z);
     }
@@ -607,7 +605,6 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       const b1 = 0
       const t0 = roundInfo.currRoundStitches[i];
       const t1 = roundInfo.currRoundStitches[i+1];
-      console.log(t0, t1);
 
       indices.push(b0, t0, b1);
       indices.push(t0, t1, b1);
@@ -914,10 +911,46 @@ function relaxAndAdjustStitches(positions, roundInfo)
       }
 
     }
+    laplacianRelaxation(positions, roundInfo);
     iterations++
 
   }
 
+
+
+}
+
+function laplacianRelaxation(positions, roundInfo)
+{
+  const correction = 0.002;
+  let i = 1
+  if (roundInfo.currRoundStitches[0] === roundInfo.currRoundStitches[-1])
+    i = 0
+
+  for (i; i < roundInfo.currRoundOUT +1; i++) {
+    const curr = roundInfo.currRoundStitches[i];
+    let prev = 0;
+    if (i === 0)
+      prev = roundInfo.currRoundStitches[-2]
+
+    else
+      prev = roundInfo.currRoundStitches[(i - 1)];
+
+    let next = 0
+    if (i === roundInfo.currRoundOUT)
+      next = roundInfo.currRoundStitches[1];
+    else
+      next = roundInfo.currRoundStitches[(i + 1)];
+
+
+    const avgX = (positions[prev * 3] + positions[next * 3]) / 2;
+    const avgY = (positions[prev * 3 + 1] + positions[next * 3 + 1]) / 2;
+    const avgZ = (positions[prev * 3 + 2] + positions[next * 3 + 2]) / 2;
+
+    positions[curr * 3] += correction * (avgX - positions[curr * 3]);
+    positions[curr * 3 + 1] += correction * (avgY - positions[curr * 3 + 1]);
+    positions[curr * 3 + 2] += correction * (avgZ - positions[curr * 3 + 2]);
+  }
 }
 
 //////////////////////// FUNCIONES AUXILIARES PARA LIDIAR CON LA GEOMETRIA CUSTOM /////////////////////
@@ -1132,6 +1165,10 @@ function refreshGeometry(positions, indices)
 
   material.needsUpdate = true;
   geometry.computeVertexNormals();
+  //let normals = geometry.getAttribute('normal');
+  //relaxByNormals(positions, normals.array);
+  //geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+
   const mesh = new THREE.Mesh(geometry, material);
   scene.add(mesh);
 
@@ -1147,4 +1184,15 @@ function refreshGeometry(positions, indices)
   const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);
   scene.add(light);
 
+}
+
+function relaxByNormals(positions, normals)
+{
+  for (let i = 0; i < positions.length/3 ; i++)
+  {
+    const amount = 0.3 * (Math.random() - 0.5);
+    positions[i*3]     += amount * normals[i*3];
+    //positions[i*3 +1]  += amount * normals[i*3 +1];
+    positions[i*3 +2]  += amount * normals[i*3 +2];
+  }
 }
