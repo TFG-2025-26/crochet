@@ -5,6 +5,8 @@ import { TSL } from 'three/webgpu';
 
 const SIZE_X = 1; //ancho de un punto. constante.
 
+const ACCEPTABLE_SIZE_X_ERROR = 0.1
+
 const SIZES_Y ={
   "ch" : 0.2,
   "sc" : 1,
@@ -130,6 +132,7 @@ function generateMesh()
     roundInfo.currRoundOUT = 0;
     
     generateRound(indices, positions, stitches, roundInfo)
+    relaxAndAdjustStitches(positions, roundInfo)
     
   }
 
@@ -138,10 +141,9 @@ function generateMesh()
 }
 
 
-//METODO PARA PROCESAR LAS VUELTAS, POR AHORA MUY SIMPLE Y TONTO, PARA QUITAR LOS SIGINIFANTES RND Y REPETIR LAS VUELTAS UN NUMERO CORRECTO DE VECES
+////////////////////////FUNCIONES PARA PROCESAR EL INPUT //////////////////
 function processRounds(input)
 {
-  //TODO: AÑADIR COMPROBACIÓN DE Q LA PRIMERA VUELTA ES VÁLIDA
   var roundsIN = input.split("\n");
   var roundsOUT = [];
   var nVueltas = 1;
@@ -224,6 +226,12 @@ function processRounds(input)
     i++
 
   }
+  if(roundsOUT[0][0] == MAGICRING)
+  {
+    roundsOUT[1] = roundsOUT[0].concat(roundsOUT[1]);
+    roundsOUT.shift();
+  }
+
   console.log(roundsOUT);
 
   if(!errorFound)
@@ -255,10 +263,10 @@ function processFirstRound(puntosIN, startIndex)
 
     else if (puntosIN[j] === MAGICRING)
     {
-      if (puntosIN.length != 1)
+      if ((puntosIN.length - startIndex) > 1)
       {
         throw new Error(
-            `si usas mr (Magic ring), la vuelta debe acabar (sin join ni turn, ni ningun otro punto).`
+            `si usas mr (Magic ring), la vuelta debe acabar (sin join ni turn)`
         );
 
       }
@@ -460,13 +468,14 @@ function validateRoundHeader(puntosIN, nVueltas)
   }
 
   //vemos si acaba en join o turn
-  if(puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
+  if(puntosIN[puntosIN.length -1] != MAGICRING && nVueltas != 0 &&  puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
     error = ("Error al final de la vuelta " + nVueltas + ". Una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
 
   return error;
 
 }
 
+/////////////////////////FUNCIONES AUXILIARES DE POST-PARSEO ///////////////////////////////////////////////
 function removeRedundacies(stitches)
 {
   var cleaned = [];
@@ -516,7 +525,6 @@ function removeRedundacies(stitches)
       cleaned.push(stitches[i]);
     }
   }
-
   return cleaned;
 
 }
@@ -549,11 +557,49 @@ function findSmaller(stitches)
   return smallest;
 }
 
+////////////////////////////////FUNCIONES DE COLOCADO DE PUNTOS ////////////////////////////
 function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 {
   if(stitches[0] == MAGICRING)
   {
-    //por ahora pues nada
+    positions.push(0, 0, 0);
+
+    //colocamos la capa de arriba
+    var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
+
+    var disp = 0.02
+    if (stitches[stitches.length -1] == JOIN)
+    {
+      disp = 0;
+      curr_direction = DIRECTION.AV
+      roundInfo.lastRoundJoined = true
+    }
+
+    //la capa de arriba
+    for (var i = 1; i < stitches.length; i++) {
+      var ang = i * theta;
+      var x = (closed.radious + i *disp) * Math.cos(ang);
+      var z = (closed.radious + i *disp) * Math.sin(ang);
+      roundInfo.currRoundStitches.push(positions.length/3)
+      positions.push(x, SIZES_Y[stitches[i]], z);
+    }
+
+    console.log(roundInfo.currRoundStitches);
+    //Los unimos e indexamos
+    //y ahora los indexamos todos
+    for(var i = 0; i < roundInfo.currRoundStitches.length-1; i++)
+    {
+      const b0 = 0;
+      const b1 = 0
+      const t0 = roundInfo.currRoundStitches[i];
+      const t1 = roundInfo.currRoundStitches[i+1];
+      console.log(t0, t1);
+
+      indices.push(b0, t0, b1);
+      indices.push(t0, t1, b1);
+
+      roundInfo.currRoundOUT++;
+    }
 
   }
 
@@ -752,50 +798,23 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
 {
   var radious = SIZE_X / (2 * Math.sin(Math.PI / (stitches.length+1)));
   var distance, vector;
-  var sign = curr_direction == DIRECTION.RET ? -1 : 1;
 
   [distance, vector] = distanceBetweenVertex(positions, prevBottom1, prevBottom2);
   var step = distance/stitches.length;
-
-
-  const center = computeCircleCenter(new THREE.Vector3(positions[prevBottom1 * 3], positions[prevBottom1 * 3 +1], positions[prevBottom1 * 3 +2]),
-      new THREE.Vector3(positions[prevBottom2 * 3], positions[prevBottom2 * 3 +1], positions[prevBottom2 * 3 +2]),
-      radious, sign);
-
-
-  const startAngle = Math.atan2(
-      positions[prevBottom1 * 3 + 2] - center[2],
-      positions[prevBottom1 * 3] - center[0]);
-
-  const endAngle = Math.atan2(
-      positions[prevBottom2 * 3 + 2] - center[2],
-      positions[prevBottom2 * 3] - center[0]);
-
-  let angleSweep = endAngle - startAngle;
-  if (Math.abs(angleSweep) > Math.PI) {
-    angleSweep = angleSweep > 0 ? angleSweep - 2*Math.PI : angleSweep + 2*Math.PI;
-  }
-
-  // Normalizar para que vaya en la dirección correcta según 'sign'
-  const targetSweep = sign * 2 * Math.PI / (stitches.length +1);
 
 
   var bottom1 = prevBottom1;
   var top1 = prevTop;
 
 
-
   for (var i = 0; i < stitches.length; i++) {
-    //const inside = SIZES_Y[stitches[i]] ** 2 - radious ** 2;
-    //const height = Math.sqrt(Math.max(0, inside));
-    var theta = startAngle + (i + 1) * targetSweep;
 
 
     if (i == stitches.length - 1) {
-      //TODO join
       var bottom2 = prevBottom2;
-      theta = endAngle;
-    } else {
+
+    }
+    else {
       placeVertexWithOffset(positions, bottom1, step * vector[0], step * vector[1], step * vector[2]);
       var bottom2 = positions.length / 3 - 1;
     }
@@ -803,14 +822,13 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
 
     if (i == stitches.length - 1 && join)
     {
-
       var top2 = roundInfo.currRoundStitches[0]
 
     }
     else
     {
       //colocamos el top q queda
-      placeVertexWithOffsetResectPoint(positions, center, radious * Math.cos(theta), SIZES_Y[stitches[i]], radious * Math.sin(theta));
+      placeVertexStitch(positions, SIZES_Y[stitches[i]], bottom2, 0);
       var top2 = positions.length/3 - 1;
     }
 
@@ -834,6 +852,107 @@ function handleTog()
 
 }
 
+function relaxAndAdjustStitches(positions, roundInfo)
+{
+  console.log(roundInfo.currRoundStitches);
+  console.log(roundInfo.currRoundOUT);
+  const correction = 0.2;
+  let center;
+  let r;
+
+  [center, r] = findSmallestCircumference(positions, roundInfo.currRoundStitches);
+
+  let allEven = false;
+
+  while (!allEven)
+  {
+    allEven = true;
+    for (let i = 0; i < roundInfo.currRoundOUT; i++)
+    {
+      let v1 = roundInfo.currRoundStitches[i]
+      let v2 = roundInfo.currRoundStitches[i+1]
+      let dist; let vector
+      [dist, vector] = distanceBetweenVertex(positions, v1, v2);
+      if (dist < (SIZE_X - ACCEPTABLE_SIZE_X_ERROR) || dist > (SIZE_X + ACCEPTABLE_SIZE_X_ERROR))
+      {
+        allEven = false;
+        const newSize = Math.min(SIZE_X - ACCEPTABLE_SIZE_X_ERROR, Math.max(SIZE_X + ACCEPTABLE_SIZE_X_ERROR, dist))
+        const diff = newSize - dist;
+        const radiousIncrease = diff / (4 * Math.sin(Math.PI/roundInfo.currRoundOUT));
+
+        //movemos el primer vertice
+        console.log(vector);
+        console.log(positions[v1*3],positions[v1*3 +2],positions[v1*3 +3]);
+        let vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v1*3], positions[v1*3 +2]])
+        positions[v1*3] = positions[v1*3]- correction * (vector[0] * (diff/2) + radiousIncrease*vectorFromCenter[0]);
+        //positions[v1*3 +1] = positions[v1*3 +1]
+        positions[v1*3 +2] = positions[v1*3 +2]- correction * (vector[2] * (diff/2) + radiousIncrease*vectorFromCenter[2]);
+        console.log(positions[v1*3],positions[v1*3 +2],positions[v1*3 +3]);
+
+        //movemos el segundo
+        vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v2*3], positions[v2*3 +2]])
+        positions[v2*3] = positions[v2*3] + correction * (vector[0] * diff/2 + radiousIncrease*vectorFromCenter[0]);
+        //positions[v2*3 +1] = positions[v2*3 +1] //+ vector[1] * diff/2;
+        positions[v2*3 +2] = positions[v2*3 +2] + correction * (vector[2] * diff/2 + radiousIncrease*vectorFromCenter[2]);
+        console.log(positions[v2*3],positions[v2*3 +2],positions[v2*3 +3]);
+
+      }
+
+    }
+
+  }
+
+}
+
+//////////////////////// FUNCIONES AUXILIARES PARA LIDIAR CON LA GEOMETRIA CUSTOM /////////////////////
+function placeVertexStitch(positions, sizeY, bottom, offset = 0)
+{
+  const baseIndex = bottom * 3;
+
+  const x = positions[baseIndex];
+  const y = positions[baseIndex + 1];
+  const z = positions[baseIndex + 2];
+
+  positions.push(x + offset, y + sizeY, z + offset);
+
+}
+
+function placeVertexWithOffset(positions, base, offsetX, offsetY, offsetZ)
+{
+  const baseIndex = base * 3;
+
+  const x = positions[baseIndex];
+  const y = positions[baseIndex + 1];
+  const z = positions[baseIndex + 2];
+
+  positions.push(x + offsetX, y + offsetY, z + offsetZ);
+
+}
+
+function placeVertexWithOffsetRespectPoint(positions, base, offsetX, offsetY, offsetZ)
+{
+
+  const x = base[0];
+  const y = base[1];
+  const z = base[2];
+
+  positions.push(x + offsetX, y + offsetY, z + offsetZ);
+
+}
+
+function makeTriangles(indices, prevBotom1, prevBotom2, prevtop, actTop)
+{
+  indices.push(prevBotom1);
+  indices.push(prevtop);
+  indices.push(prevBotom2); 
+
+  indices.push(prevtop);
+  indices.push(actTop); 
+  indices.push(prevBotom2);  
+
+}
+
+////////////////////////////FUNCIONES AUXILIARES DE CÁLCULOS GENÉRICOS/////////////////////////////////////////
 function distanceBetweenVertex(positions, vertex1, vertex2)
 {
   const baseIndex1 = vertex1 * 3;
@@ -864,80 +983,98 @@ function distanceBetweenVertex(positions, vertex1, vertex2)
 
 }
 
-function computeCircleCenter(A, B, radius, directionSign, up = new THREE.Vector3(0, 1, 0)) {
 
-  // 1. chord vector
-  const AB = new THREE.Vector3().subVectors(B, A);
-  const dist = AB.length();
+function distanceBetween2DPoints(a, b) {
+  return Math.hypot(a[0] - b[0], a[1] - b[1]);
+}
 
-  if (dist > 2 * radius) {
-    throw new Error("No valid circle: chord longer than diameter");
+function unitVectorBetween2DPoints(a, b)
+{
+  let dist = Math.hypot(a[0] - b[0], a[1] - b[1])
+  const unitVector =
+      dist === 0
+          ? [0, 0, 0]
+          : [a[0] - b[0] / dist, a[1] - b[1] / dist];
+
+  return unitVector;
+
+}
+
+function circleFrom2Points(a, b) {
+  const cx = (a[0] + b[0]) / 2;
+  const cy = (a[1] + b[1]) / 2;
+  return [cx, cy, distanceBetween2DPoints(a, b) / 2];
+}
+
+function circleFrom3Points(a, b, c) {
+  const d = 2 * (
+      a[0] * (b[1] - c[1]) +
+      b[0] * (c[1] - a[1]) +
+      c[0] * (a[1] - b[1])
+  );
+
+  if (Math.abs(d) < 1e-12) return null; // collinear
+
+  const ux =
+      (
+          (a[0] ** 2 + a[1] ** 2) * (b[1] - c[1]) +
+          (b[0] ** 2 + b[1] ** 2) * (c[1] - a[1]) +
+          (c[0] ** 2 + c[1] ** 2) * (a[1] - b[1])
+      ) / d;
+
+  const uy =
+      (
+          (a[0] ** 2 + a[1] ** 2) * (c[0] - b[0]) +
+          (b[0] ** 2 + b[1] ** 2) * (a[0] - c[0]) +
+          (c[0] ** 2 + c[1] ** 2) * (b[0] - a[0])
+      ) / d;
+
+  return [ux, uy, distanceBetween2DPoints([ux, uy], a)];
+}
+
+
+function findSmallestCircumference(positions, indexes) {
+  var pts = []
+  for (var i = 0; i < indexes.length; i++)
+  {
+    var x = positions[i* 3];
+    var z = positions[i * 3 +2];
+
+    pts.push([x, z]);
   }
 
-  const mid = new THREE.Vector3().addVectors(A, B).multiplyScalar(0.5);
+  // Barajamos por eficiencia
+  for (let i = pts.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [pts[i], pts[j]] = [pts[j], pts[i]];
+  }
 
-  const dir = AB.clone().normalize();
+  let circle = null;
+  let radius = 0;
 
-  // perpendicular direction in plane
-  let perp = new THREE.Vector3().crossVectors(up, dir).normalize();
+  for (let i = 0; i < pts.length; i++) {
+    if (circle && distanceBetween2DPoints([circle[0], circle[1]], pts[i]) <= radius) continue;
 
+    circle = [pts[i][0], pts[i][1]];
 
-  // distance from midpoint to circle center
-  const h = Math.sqrt(radius * radius - (dist * dist) / 4);
+    for (let j = 0; j < i; j++) {
+      if (distanceBetween2DPoints([circle[0], circle[1]], pts[i]) <= radius) continue;
 
-  // two possible centers → choose side using sign
-  const center = mid.clone().addScaledVector(perp, h * directionSign);
+      circle = circleFrom2Points(pts[i], pts[j]);
 
-  return [center.x, center.y, center.z];
+      for (let k = 0; k < j; k++) {
+        if (distanceBetween2DPoints([circle[0], circle[1]], pts[k]) <= radius) continue;
+
+        const c = circleFrom3Points(pts[i], pts[j], pts[k]);
+        if (c) circle = c;
+      }
+    }
+  }
+
+  return [circle, radius];
 }
 
-function placeVertexStitch(positions, sizeY, bottom, offset = 0)
-{
-  const baseIndex = bottom * 3;
-
-  const x = positions[baseIndex];
-  const y = positions[baseIndex + 1];
-  const z = positions[baseIndex + 2];
-
-  positions.push(x + offset, y + sizeY, z + offset);
-
-}
-
-function placeVertexWithOffset(positions, base, offsetX, offsetY, offsetZ)
-{
-  const baseIndex = base * 3;
-
-  const x = positions[baseIndex];
-  const y = positions[baseIndex + 1];
-  const z = positions[baseIndex + 2];
-
-  positions.push(x + offsetX, y + offsetY, z + offsetZ);
-
-}
-
-function placeVertexWithOffsetResectPoint(positions, base, offsetX, offsetY, offsetZ)
-{
-
-  const x = base[0];
-  const y = base[1];
-  const z = base[2];
-
-  positions.push(x + offsetX, y + offsetY, z + offsetZ);
-
-}
-
-function makeTriangles(indices, prevBotom1, prevBotom2, prevtop, actTop)
-{
-  indices.push(prevBotom1);
-  indices.push(prevtop);
-  indices.push(prevBotom2); 
-
-  indices.push(prevtop);
-  indices.push(actTop); 
-  indices.push(prevBotom2);  
-
-}
-
+//////////////////////////////////////REFRESCAR GEOMETRÍA /////////////////////////////////////////
 function refreshGeometry(positions, indices)
 {
   scene.clear();
