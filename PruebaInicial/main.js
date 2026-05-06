@@ -229,7 +229,7 @@ function processRounds(input)
   if(roundsOUT[0][0] == MAGICRING)
   {
     closed.isClosed = true;
-    closed.radious = SIZE_X / (2 * Math.sin(Math.PI / roundsOUT[1].length))
+    closed.radious = SIZE_X / (2 * Math.sin(Math.PI / (roundsOUT[1].length - 1)))
     roundsOUT[1] = roundsOUT[0].concat(roundsOUT[1]);
     roundsOUT.shift();
   }
