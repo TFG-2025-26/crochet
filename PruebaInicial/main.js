@@ -228,6 +228,8 @@ function processRounds(input)
   }
   if(roundsOUT[0][0] == MAGICRING)
   {
+    closed.isClosed = true;
+    closed.radious = SIZE_X / (2 * Math.sin(Math.PI / roundsOUT[1].length))
     roundsOUT[1] = roundsOUT[0].concat(roundsOUT[1]);
     roundsOUT.shift();
   }
@@ -564,25 +566,37 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
   {
     positions.push(0, 0, 0);
 
-    //colocamos la capa de arriba
+    //montamos la capa de arriba
+    //calculamos ángulos
     var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
 
-    var disp = 0.02
+    let disp = 0.02
     if (stitches[stitches.length -1] == JOIN)
     {
       disp = 0;
       curr_direction = DIRECTION.AV
       roundInfo.lastRoundJoined = true
     }
+    console.log(disp)
+    console.log(closed.radious);
 
-    //la capa de arriba
-    for (var i = 1; i < stitches.length; i++) {
-      var ang = i * theta;
-      var x = (closed.radious + i *disp) * Math.cos(ang);
-      var z = (closed.radious + i *disp) * Math.sin(ang);
+    //el primer punto
+    let x = (closed.radious) * Math.cos(0);
+    let z = (closed.radious) * Math.sin(0);
+    roundInfo.currRoundStitches.push(positions.length/3)
+    positions.push(x, SIZES_Y[stitches[1]], z);
+
+    //el resto
+    for (var i = 1; i < stitches.length -1; i++) {
+      let ang = i * theta;
+      x = (closed.radious + i *disp) * Math.cos(ang);
+      z = (closed.radious + i *disp) * Math.sin(ang);
+      console.log(i * disp + closed.radious, x, z)
       roundInfo.currRoundStitches.push(positions.length/3)
       positions.push(x, SIZES_Y[stitches[i]], z);
     }
+
+    console.log(positions);
 
     console.log(roundInfo.currRoundStitches);
     //Los unimos e indexamos
@@ -854,21 +868,25 @@ function handleTog()
 
 function relaxAndAdjustStitches(positions, roundInfo)
 {
-  console.log(roundInfo.currRoundStitches);
-  console.log(roundInfo.currRoundOUT);
-  const correction = 0.2;
+  const correction = 0.1;
+  const radialCorrection = 0.3;
+  const maxIteration = 400;
   let center;
   let r;
 
-  [center, r] = findSmallestCircumference(positions, roundInfo.currRoundStitches);
+
+
 
   let allEven = false;
+  let iterations = 0
 
-  while (!allEven)
+  while (!allEven && iterations < maxIteration)
   {
+    [center, r] = findSmallestCircumference(positions, roundInfo.currRoundStitches);
     allEven = true;
     for (let i = 0; i < roundInfo.currRoundOUT; i++)
     {
+      console.log(i);
       let v1 = roundInfo.currRoundStitches[i]
       let v2 = roundInfo.currRoundStitches[i+1]
       let dist; let vector
@@ -878,29 +896,27 @@ function relaxAndAdjustStitches(positions, roundInfo)
         allEven = false;
         const newSize = Math.min(SIZE_X - ACCEPTABLE_SIZE_X_ERROR, Math.max(SIZE_X + ACCEPTABLE_SIZE_X_ERROR, dist))
         const diff = newSize - dist;
-        const radiousIncrease = diff / (4 * Math.sin(Math.PI/roundInfo.currRoundOUT));
+        const radiousIncrease = radialCorrection * diff / (4 * Math.sin(Math.PI/roundInfo.currRoundOUT));
 
         //movemos el primer vertice
         //console.log(vector);
         let vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v1*3], positions[v1*3 +2]])
-        //console.log(structuredClone([positions[v1*3],positions[v1*3 +1],positions[v1*3 +2]]));
-        positions[v1*3] = positions[v1*3]- correction * (vector[0] * (diff/2) + radiousIncrease*vectorFromCenter[0]);
+        positions[v1*3] = positions[v1*3]- correction * (vector[0] * (diff/2) )- radiousIncrease*vectorFromCenter[0];
         //positions[v1*3 +1] = positions[v1*3 +1]
-        positions[v1*3 +2] = positions[v1*3 +2]- correction * (vector[2] * (diff/2) + radiousIncrease*vectorFromCenter[1]);
-        //console.log(structuredClone([positions[v1*3],positions[v1*3 +1],positions[v1*3 +2]]));
+        positions[v1*3 +2] = positions[v1*3 +2]- correction * (vector[2] * (diff/2) )- radiousIncrease*vectorFromCenter[1];
 
         //movemos el segundo
-        console.log(structuredClone([positions[v2*3],positions[v2*3 +1],positions[v2*3 +2]]));
         vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v2*3], positions[v2*3 +2]])
-        positions[v2*3] = positions[v2*3] + correction * (vector[0] * (diff/2) )//+ radiousIncrease*vectorFromCenter[0]);
+        positions[v2*3] = positions[v2*3] + correction * (vector[0] * (diff/2) ) - radiousIncrease*vectorFromCenter[0];
         //positions[v2*3 +1] = positions[v2*3 +1] //+ vector[1] * diff/2;
-        positions[v2*3 +2] = positions[v2*3 +2] + correction * (vector[2] * (diff/2) ) // + radiousIncrease*vectorFromCenter[1]);
-        console.log(structuredClone([positions[v2*3],positions[v2*3 +1],positions[v2*3 +2]]));
+        positions[v2*3 +2] = positions[v2*3 +2] + correction * (vector[2] * (diff/2) ) - radiousIncrease*vectorFromCenter[1];
 
 
       }
 
     }
+    iterations++
+    console.log(iterations);
 
   }
 
@@ -996,7 +1012,7 @@ function unitVectorBetween2DPoints(a, b)
   const unitVector =
       dist === 0
           ? [0, 0, 0]
-          : [a[0] - b[0] / dist, a[1] - b[1] / dist];
+          : [(a[0] - b[0]) / dist, (a[1] - b[1]) / dist];
 
   return unitVector;
 
@@ -1034,22 +1050,30 @@ function circleFrom3Points(a, b, c) {
   return [ux, uy, distanceBetween2DPoints([ux, uy], a)];
 }
 
+function circleContainsAllPoints(circle, radius, pts, eps = 1e-8) {
+  for (const p of pts) {
+    if (distanceBetween2DPoints([circle[0], circle[1]], p) > radius + eps) {
+      return false;
+    }
+  }
+  return true;
+}
 
 function findSmallestCircumference(positions, indexes) {
   var pts = []
   for (var i = 0; i < indexes.length; i++)
   {
-    var x = positions[i* 3];
-    var z = positions[i * 3 +2];
+    var x = positions[indexes[i]* 3];
+    var z = positions[indexes[i] * 3 +2];
 
     pts.push([x, z]);
   }
 
   // Barajamos por eficiencia
-  for (let i = pts.length - 1; i > 0; i--) {
-    const j = (Math.random() * (i + 1)) | 0;
-    [pts[i], pts[j]] = [pts[j], pts[i]];
-  }
+  //for (let i = pts.length - 1; i > 0; i--) {
+  //  const j = (Math.random() * (i + 1)) | 0;
+  //  [pts[i], pts[j]] = [pts[j], pts[i]];
+  //}
 
   let circle = null;
   let radius = 0;
@@ -1062,13 +1086,26 @@ function findSmallestCircumference(positions, indexes) {
     for (let j = 0; j < i; j++) {
       if (distanceBetween2DPoints([circle[0], circle[1]], pts[i]) <= radius) continue;
 
-      circle = circleFrom2Points(pts[i], pts[j]);
+      const c = circleFrom2Points(pts[i], pts[j]);
+      if (c) {
+        const [cx, cy, r] = c;
+
+        if (circleContainsAllPoints([cx, cy], r, pts)) {
+          [circle[0], circle[1], radius] = c;
+        }
+      }
 
       for (let k = 0; k < j; k++) {
         if (distanceBetween2DPoints([circle[0], circle[1]], pts[k]) <= radius) continue;
 
         const c = circleFrom3Points(pts[i], pts[j], pts[k]);
-        if (c) circle = c;
+        if (c) {
+          const [cx, cy, r] = c;
+
+          if (circleContainsAllPoints([cx, cy], r, pts)) {
+            [circle[0], circle[1], radius] = c;
+          }
+        }
       }
     }
   }
