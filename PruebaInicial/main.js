@@ -10,7 +10,9 @@ const ACCEPTABLE_SIZE_X_ERROR = 0.05
 const SIZES_Y ={
   "ch" : 0.2,
   "sc" : 1,
-  "dc" : 2
+  "dc" : 2,
+  "slst" : 0.05,
+  "hdc" : 1.5
 }
 
 const TURN = "turn";
@@ -869,12 +871,10 @@ function handleTog()
 function relaxAndAdjustStitches(positions, roundInfo)
 {
   const correction = 0.1;
-  const radialCorrection = 0.3;
+  const radialCorrection = 0.2;
   const maxIteration = 400;
   let center;
   let r;
-
-
 
 
   let allEven = false;
@@ -886,7 +886,6 @@ function relaxAndAdjustStitches(positions, roundInfo)
     allEven = true;
     for (let i = 0; i < roundInfo.currRoundOUT; i++)
     {
-      console.log(i);
       let v1 = roundInfo.currRoundStitches[i]
       let v2 = roundInfo.currRoundStitches[i+1]
       let dist; let vector
@@ -894,29 +893,28 @@ function relaxAndAdjustStitches(positions, roundInfo)
       if (dist < (SIZE_X - ACCEPTABLE_SIZE_X_ERROR) || dist > (SIZE_X + ACCEPTABLE_SIZE_X_ERROR))
       {
         allEven = false;
-        const newSize = Math.min(SIZE_X - ACCEPTABLE_SIZE_X_ERROR, Math.max(SIZE_X + ACCEPTABLE_SIZE_X_ERROR, dist))
+        const newSize = Math.max(SIZE_X - ACCEPTABLE_SIZE_X_ERROR, Math.min(SIZE_X + ACCEPTABLE_SIZE_X_ERROR, dist))
         const diff = newSize - dist;
-        const radiousIncrease = radialCorrection * diff / (4 * Math.sin(Math.PI/roundInfo.currRoundOUT));
+        const radiousIncrease = radialCorrection * diff * 0.5
 
         //movemos el primer vertice
         //console.log(vector);
-        let vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v1*3], positions[v1*3 +2]])
-        positions[v1*3] = positions[v1*3]- correction * (vector[0] * (diff/2) )- radiousIncrease*vectorFromCenter[0];
-        //positions[v1*3 +1] = positions[v1*3 +1]
-        positions[v1*3 +2] = positions[v1*3 +2]- correction * (vector[2] * (diff/2) )- radiousIncrease*vectorFromCenter[1];
+        let vectorFromCenter = unitVectorBetween2DPoints( [positions[v1*3], positions[v1*3 +2]], center)
+        positions[v1*3] = positions[v1*3]- correction * (vector[0] * (diff/2) )+ radiousIncrease*vectorFromCenter[0];
+        positions[v1*3 +1] = positions[v1*3 +1]- correction * (vector[1] * (diff/2) )
+        positions[v1*3 +2] = positions[v1*3 +2]- correction * (vector[2] * (diff/2) )+ radiousIncrease*vectorFromCenter[1];
 
         //movemos el segundo
-        vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v2*3], positions[v2*3 +2]])
-        positions[v2*3] = positions[v2*3] + correction * (vector[0] * (diff/2) ) - radiousIncrease*vectorFromCenter[0];
-        //positions[v2*3 +1] = positions[v2*3 +1] //+ vector[1] * diff/2;
-        positions[v2*3 +2] = positions[v2*3 +2] + correction * (vector[2] * (diff/2) ) - radiousIncrease*vectorFromCenter[1];
+        vectorFromCenter = unitVectorBetween2DPoints( [positions[v2*3], positions[v2*3 +2]], center)
+        positions[v2*3] = positions[v2*3] + correction * (vector[0] * (diff/2) ) + radiousIncrease*vectorFromCenter[0];
+        positions[v2*3 +1] = positions[v2*3 +1] + correction * vector[1] * (diff/2);
+        positions[v2*3 +2] = positions[v2*3 +2] + correction * (vector[2] * (diff/2) ) + radiousIncrease*vectorFromCenter[1];
 
 
       }
 
     }
     iterations++
-    console.log(iterations);
 
   }
 
@@ -1011,7 +1009,7 @@ function unitVectorBetween2DPoints(a, b)
   let dist = Math.hypot(a[0] - b[0], a[1] - b[1])
   const unitVector =
       dist === 0
-          ? [0, 0, 0]
+          ? [0, 0]
           : [(a[0] - b[0]) / dist, (a[1] - b[1]) / dist];
 
   return unitVector;
@@ -1070,10 +1068,10 @@ function findSmallestCircumference(positions, indexes) {
   }
 
   // Barajamos por eficiencia
-  //for (let i = pts.length - 1; i > 0; i--) {
-  //  const j = (Math.random() * (i + 1)) | 0;
-  //  [pts[i], pts[j]] = [pts[j], pts[i]];
-  //}
+  for (let i = pts.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [pts[i], pts[j]] = [pts[j], pts[i]];
+  }
 
   let circle = null;
   let radius = 0;
@@ -1082,9 +1080,10 @@ function findSmallestCircumference(positions, indexes) {
     if (circle && distanceBetween2DPoints([circle[0], circle[1]], pts[i]) <= radius) continue;
 
     circle = [pts[i][0], pts[i][1]];
+    radius = 0;
 
     for (let j = 0; j < i; j++) {
-      if (distanceBetween2DPoints([circle[0], circle[1]], pts[i]) <= radius) continue;
+      if (distanceBetween2DPoints([circle[0], circle[1]], pts[j]) <= radius) continue;
 
       const c = circleFrom2Points(pts[i], pts[j]);
       if (c) {
