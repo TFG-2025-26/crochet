@@ -881,20 +881,22 @@ function relaxAndAdjustStitches(positions, roundInfo)
         const radiousIncrease = diff / (4 * Math.sin(Math.PI/roundInfo.currRoundOUT));
 
         //movemos el primer vertice
-        console.log(vector);
-        console.log(positions[v1*3],positions[v1*3 +2],positions[v1*3 +3]);
+        //console.log(vector);
         let vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v1*3], positions[v1*3 +2]])
+        //console.log(structuredClone([positions[v1*3],positions[v1*3 +1],positions[v1*3 +2]]));
         positions[v1*3] = positions[v1*3]- correction * (vector[0] * (diff/2) + radiousIncrease*vectorFromCenter[0]);
         //positions[v1*3 +1] = positions[v1*3 +1]
-        positions[v1*3 +2] = positions[v1*3 +2]- correction * (vector[2] * (diff/2) + radiousIncrease*vectorFromCenter[2]);
-        console.log(positions[v1*3],positions[v1*3 +2],positions[v1*3 +3]);
+        positions[v1*3 +2] = positions[v1*3 +2]- correction * (vector[2] * (diff/2) + radiousIncrease*vectorFromCenter[1]);
+        //console.log(structuredClone([positions[v1*3],positions[v1*3 +1],positions[v1*3 +2]]));
 
         //movemos el segundo
+        console.log(structuredClone([positions[v2*3],positions[v2*3 +1],positions[v2*3 +2]]));
         vectorFromCenter = unitVectorBetween2DPoints(center, [positions[v2*3], positions[v2*3 +2]])
-        positions[v2*3] = positions[v2*3] + correction * (vector[0] * diff/2 + radiousIncrease*vectorFromCenter[0]);
+        positions[v2*3] = positions[v2*3] + correction * (vector[0] * (diff/2) )//+ radiousIncrease*vectorFromCenter[0]);
         //positions[v2*3 +1] = positions[v2*3 +1] //+ vector[1] * diff/2;
-        positions[v2*3 +2] = positions[v2*3 +2] + correction * (vector[2] * diff/2 + radiousIncrease*vectorFromCenter[2]);
-        console.log(positions[v2*3],positions[v2*3 +2],positions[v2*3 +3]);
+        positions[v2*3 +2] = positions[v2*3 +2] + correction * (vector[2] * (diff/2) ) // + radiousIncrease*vectorFromCenter[1]);
+        console.log(structuredClone([positions[v2*3],positions[v2*3 +1],positions[v2*3 +2]]));
+
 
       }
 
