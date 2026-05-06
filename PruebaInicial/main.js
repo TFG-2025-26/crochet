@@ -5,7 +5,7 @@ import { TSL } from 'three/webgpu';
 
 const SIZE_X = 1; //ancho de un punto. constante.
 
-const ACCEPTABLE_SIZE_X_ERROR = 0.1
+const ACCEPTABLE_SIZE_X_ERROR = 0.05
 
 const SIZES_Y ={
   "ch" : 0.2,
@@ -596,9 +596,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       positions.push(x, SIZES_Y[stitches[i]], z);
     }
 
-    console.log(positions);
 
-    console.log(roundInfo.currRoundStitches);
     //Los unimos e indexamos
     //y ahora los indexamos todos
     for(var i = 0; i < roundInfo.currRoundStitches.length-1; i++)
@@ -614,6 +612,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 
       roundInfo.currRoundOUT++;
     }
+    roundInfo.prevRoundJoined = true;
 
   }
 
@@ -747,7 +746,8 @@ function generateRound(indices, positions, stitches, roundInfo)
 
           if (roundInfo.lastRoundJoined && stitches.includes(TURN))
           {
-            placeVertexStitch(positions, size_y, prevBotom1, 0.05)
+            let offset = unitVectorBetween2DPoints([positions[prevBotom1*3], positions[prevBotom1*3 +2]], [0, 0])
+            placeVertexStitch(positions, size_y, prevBotom1, [0.05 * offset[0], 0.05 * offset[1]])
           }
 
 
@@ -842,7 +842,7 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
     else
     {
       //colocamos el top q queda
-      placeVertexStitch(positions, SIZES_Y[stitches[i]], bottom2, 0);
+      placeVertexStitch(positions, SIZES_Y[stitches[i]], bottom2, );
       var top2 = positions.length/3 - 1;
     }
 
@@ -923,7 +923,7 @@ function relaxAndAdjustStitches(positions, roundInfo)
 }
 
 //////////////////////// FUNCIONES AUXILIARES PARA LIDIAR CON LA GEOMETRIA CUSTOM /////////////////////
-function placeVertexStitch(positions, sizeY, bottom, offset = 0)
+function placeVertexStitch(positions, sizeY, bottom, offset = [0, 0])
 {
   const baseIndex = bottom * 3;
 
@@ -931,7 +931,7 @@ function placeVertexStitch(positions, sizeY, bottom, offset = 0)
   const y = positions[baseIndex + 1];
   const z = positions[baseIndex + 2];
 
-  positions.push(x + offset, y + sizeY, z + offset);
+  positions.push(x + offset[0], y + sizeY, z + offset[1]);
 
 }
 
