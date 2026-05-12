@@ -92,7 +92,7 @@ window.addEventListener('resize', () => {
 //ahora mismo el la cosa mas tocha de la galaxia. Tiene espacio de mejora.
 function generateMesh()
 {
-  var value = document.getElementById("input").value;
+  let value = document.getElementById("input").value;
   value = value.toLowerCase();
   
   closed = {isClosed: false, radious: 0}
@@ -100,42 +100,44 @@ function generateMesh()
 
   const rounds = processRounds(value);
 
-  if (rounds == -1) //si ha habido un error en el preprocesado, paramos
+  if (rounds === -1) //si ha habido un error en el preprocesado, paramos
   {
     return;
   }
   
   //empezamos a generar la mesh
-  var positions = [];
-  var indices = [];
+  let positions = [];
+  let indices = [];
 
-  var roundInfo =
+  let roundInfo =
   {prevRoundOUT : 0, 
     currRoundIN : 0, 
     currRoundOUT : 0, 
     chainsToPlace : 0, 
     prevRoundStitches : [], 
     currRoundStitches : [],
-    prevRoundJoined : false}
+    prevRoundJoined : false,
+    stitchesToAlign: []}
 
   //hacemos la primera vuelta:
   generateFirstRound(roundInfo, closed, rounds[0], positions, indices);
 
 
   //y ahora hacemos el resto de vueltas
-  for (var i = 1; i < rounds.length; i++)
+  for (let i = 1; i < rounds.length; i++)
   {    
     const stitches = rounds[i]
     
     roundInfo.prevRoundOUT =  roundInfo.currRoundOUT
     roundInfo.prevRoundStitches = roundInfo.currRoundStitches
     roundInfo.currRoundStitches = []
+    roundInfo.stitchesToAlign = []
     roundInfo.currRoundIN = 0;
     roundInfo.currRoundOUT = 0;
     
     generateRound(indices, positions, stitches, roundInfo)
     relaxAndAdjustStitches(positions, roundInfo)
-    //laplacianRelaxation(positions, roundInfo)
+    alignTogVertexes(positions, roundInfo.stitchesToAlign)
     
   }
 
@@ -174,7 +176,7 @@ function processRounds(input)
       else
       {
         //vemos si son varias vueltas:
-        if (puntosIN.length > 4 && puntosIN[2] == "-")
+        if (puntosIN.length > 4 && puntosIN[2] === "-")
         {
           nReps = puntosIN[3] - nVueltas +1;
           nRndWords = 4;
@@ -184,7 +186,7 @@ function processRounds(input)
         {
   
           //traducimos la vuelta
-          var result = -1;
+          let result = -1;
           try {
             if (nVueltas > 1)
             {
@@ -213,9 +215,9 @@ function processRounds(input)
                 SIZE_X / (2 * Math.sin(Math.PI / result.currRoundOUT));
           }
 
-          var round = removeRedundacies(result.puntosOut);
+          let round = removeRedundancies(result.puntosOut);
           //si son varias vueltas:
-          for(var j = 0; j < nReps; j++)
+          for(let j = 0; j < nReps; j++)
           {
             roundsOUT.push(round.slice());
           }
@@ -229,7 +231,7 @@ function processRounds(input)
     i++
 
   }
-  if(roundsOUT[0][0] == MAGICRING)
+  if(roundsOUT[0][0] === MAGICRING)
   {
     closed.isClosed = true;
     closed.radious = SIZE_X / (2 * Math.sin(Math.PI / (roundsOUT[1].length - 1)))
@@ -237,7 +239,7 @@ function processRounds(input)
     roundsOUT.shift();
   }
 
-  console.log(roundsOUT);
+  //console.log(roundsOUT);
 
   if(!errorFound)
   {
@@ -432,7 +434,7 @@ function validatePoint(stitch) {
 
 function parseStitch(puntosIN, j) {
   let repeat = 1;
-  var currRoundIN = 0; var currRoundOUT = 0;
+  let currRoundIN = 0; let currRoundOUT = 0;
   const stitch = puntosIN[j];
   j++;
 
@@ -464,32 +466,33 @@ function validateRoundHeader(puntosIN, nVueltas)
   var error = null;
   if(puntosIN.length < 2 || puntosIN[0] != "rnd" || puntosIN[1] != nVueltas)
     error = ("Formato incorrecto en la vuelta " + nVueltas + ". Debería empezar por \"rnd " + nVueltas + "\". Revise el fomato de linea.");
-  
+
   //vemos si son varias vueltas:
-  if (puntosIN.length > 4 && puntosIN[2] == "-")
+  if (puntosIN.length > 4 && puntosIN[2] === "-")
   {
-    if(parseInt(puntosIN[3],10).toString() !== puntosIN[3] || puntosIN[3] <= nVueltas)
+    if(parseInt(puntosIN[3],10).toString() != puntosIN[3] || puntosIN[3] <= nVueltas)
       error = ("Formato incorrecto en la vuelta " + nVueltas + ". Revise el uso de guiones (-).");
   }
 
   //vemos si acaba en join o turn
-  if(puntosIN[puntosIN.length -1] != MAGICRING && nVueltas != 0 &&  puntosIN[puntosIN.length-1] != JOIN && puntosIN[puntosIN.length-1] != TURN)
+  if(puntosIN[puntosIN.length -1] !== MAGICRING && nVueltas !== 0 &&  puntosIN[puntosIN.length-1] !== JOIN && puntosIN[puntosIN.length-1] != TURN)
     error = ("Error al final de la vuelta " + nVueltas + ". Una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
 
   return error;
 
 }
 
+
 /////////////////////////FUNCIONES AUXILIARES DE POST-PARSEO ///////////////////////////////////////////////
-function removeRedundacies(stitches)
+function removeRedundancies(stitches)
 {
-  var cleaned = [];
+  let cleaned = [];
   for (let i = 0; i < stitches.length; i++)
   {
     if (stitches[i] === "tog" || stitches[i] === "insamest")
     {
-      var insideRedundant = removeRedundacies(stitches[i+1]);
-      var insideCleaned = []
+      let insideRedundant = removeRedundancies(stitches[i+1]);
+      let insideCleaned = []
       for(let j = 0; j < insideRedundant.length; j++)
       {
         if (insideRedundant[j] in SIZES_Y)
@@ -505,7 +508,7 @@ function removeRedundacies(stitches)
 
         else  //si es tog dentro de insamest o viceversa
         {
-          var st = findSmaller(insideRedundant[j+1]);
+          let st = findSmaller(insideRedundant[j+1]);
           insideCleaned.push(st)
           j++
 
@@ -536,7 +539,7 @@ function removeRedundacies(stitches)
 
 function findSmaller(stitches)
 {
-  var smallest = "dc"
+  let smallest = "dc"
   for(let i = 0; i < stitches.length; i++)
   {
     if(stitches[i] in SIZES_Y)
@@ -548,7 +551,7 @@ function findSmaller(stitches)
     }
     else if (stitches[i] === "tog" || stitches[i] === "insamest")
     {
-      var res = findSmaller(stitches[i+1]);
+      let res = findSmaller(stitches[i+1]);
       if (SIZES_Y[res] < SIZES_Y[smallest])
       {
         smallest = res;
@@ -565,16 +568,16 @@ function findSmaller(stitches)
 ////////////////////////////////FUNCIONES DE COLOCADO DE PUNTOS ////////////////////////////
 function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 {
-  if(stitches[0] == MAGICRING)
+  if(stitches[0] === MAGICRING)
   {
     positions.push(0, 0, 0);
 
     //montamos la capa de arriba
     //calculamos ángulos
-    var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
+    let theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
 
     let disp = 0.02
-    if (stitches[stitches.length -1] == JOIN)
+    if (stitches[stitches.length -1] === JOIN)
     {
       disp = 0;
       curr_direction = DIRECTION.AV
@@ -588,7 +591,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
     positions.push(x, SIZES_Y[stitches[1]], z);
 
     //el resto
-    for (var i = 1; i < stitches.length -1; i++) {
+    for (let i = 1; i < stitches.length -1; i++) {
       let ang = i * theta;
       x = (closed.radious + i *disp) * Math.cos(ang);
       z = (closed.radious + i *disp) * Math.sin(ang);
@@ -599,7 +602,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 
     //Los unimos e indexamos
     //y ahora los indexamos todos
-    for(var i = 0; i < roundInfo.currRoundStitches.length-1; i++)
+    for(let i = 0; i < roundInfo.currRoundStitches.length-1; i++)
     {
       const b0 = 0;
       const b1 = 0
@@ -621,12 +624,12 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
     if (!closed.isClosed)
     {
         //primero toda la capa de abajo
-      for (var i = 0; i < stitches.length; i++) {
+      for (let i = 0; i < stitches.length; i++) {
         positions.push(SIZE_X * i, 0, 0);
       }
 
       //la capa de arriba (para q tenga sentido en nuestra arquitectura)
-      for (var i = 0; i < stitches.length; i++) {
+      for (let i = 0; i < stitches.length; i++) {
         roundInfo.currRoundStitches.push(positions.length/3)
         roundInfo.prevRoundJoined = true;
         positions.push(SIZE_X * i, SIZES_Y[CH], 0);
@@ -638,7 +641,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
       
       var disp = 0.02
-      if (stitches[stitches.length -1] == JOIN) 
+      if (stitches[stitches.length -1] === JOIN)
       {
         disp = 0;
         curr_direction = DIRECTION.AV
@@ -646,18 +649,18 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
       }
 
       //primero toda la capa de abajo
-      for (var i = 0; i < stitches.length; i++) {
-        var ang = i * theta;
-        var x = (closed.radious + i *disp) * Math.cos(ang);
-        var z = (closed.radious + i *disp) * Math.sin(ang);
+      for (let i = 0; i < stitches.length; i++) {
+        let ang = i * theta;
+        let x = (closed.radious + i *disp) * Math.cos(ang);
+        let z = (closed.radious + i *disp) * Math.sin(ang);
         positions.push(x, 0, z);
       }
 
       //la capa de arriba (para q tenga sentido en nuestra arquitectura)
-      for (var i = 0; i < stitches.length; i++) {
-        var ang = i * theta;
-        var x = (closed.radious + i *disp) * Math.cos(ang);
-        var z = (closed.radious + i *disp) * Math.sin(ang);
+      for (let i = 0; i < stitches.length; i++) {
+        let ang = i * theta;
+        let x = (closed.radious + i *disp) * Math.cos(ang);
+        let z = (closed.radious + i *disp) * Math.sin(ang);
         roundInfo.currRoundStitches.push(positions.length/3)
         positions.push(x, SIZES_Y[CH], z);
       }
@@ -665,7 +668,7 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
     }
 
     //y ahora los indexamos todos
-    for(var i = 0; i < stitches.length-1; i++)
+    for(let i = 0; i < stitches.length-1; i++)
     {
       const b0 = i;
       const b1 = i + 1;
@@ -686,28 +689,28 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
 
 function generateRound(indices, positions, stitches, roundInfo)
 {
-  var currStitch = 0;
+  let currStitch = 0;
 
   while (currStitch < stitches.length)
   {
-    if (stitches[currStitch] == CH)
+    if (stitches[currStitch] === CH)
       roundInfo.chainsToPlace++;
 
     else
     {
 
-      if(stitches[currStitch] == JOIN)
+      if(stitches[currStitch] === JOIN)
       {
         curr_direction = DIRECTION.AV
         roundInfo.lastRoundJoined = true
       }
 
-      else if (stitches[currStitch] == TURN)
+      else if (stitches[currStitch] === TURN)
       {
         curr_direction = DIRECTION.RET
         roundInfo.lastRoundJoined = false
       }
-      else if (stitches[currStitch] == SKIP)
+      else if (stitches[currStitch] === SKIP)
       {
         roundInfo.currRoundIN++;
       }
@@ -716,12 +719,11 @@ function generateRound(indices, positions, stitches, roundInfo)
       {
         //TODO: CHAINS
 
-        var prevBotom1 = 0;
-        var prevBotom2 = 0;
-        var prevtop = 0;
-        var actTop = 0;
+        let prevBotom1 = 0;
+        let prevBotom2 = 0;
+        let prevtop = 0;
 
-        if(curr_direction == DIRECTION.AV)  //vamos en espiral, avanzando
+        if(curr_direction === DIRECTION.AV)  //vamos en espiral, avanzando
         {
           prevBotom1 = roundInfo.prevRoundStitches[roundInfo.currRoundIN];
           prevBotom2 = roundInfo.prevRoundStitches[roundInfo.currRoundIN+1]
@@ -733,13 +735,14 @@ function generateRound(indices, positions, stitches, roundInfo)
           prevBotom2 = roundInfo.prevRoundStitches[roundInfo.prevRoundOUT - roundInfo.currRoundIN -1];
         }
 
-        if(roundInfo.currRoundIN == 0) //si es el primer punto, ponemos el primer vertice
+        if(roundInfo.currRoundIN === 0) //si es el primer punto, ponemos el primer vertice
         {
+          let size_y
           if (stitches[currStitch] in SIZES_Y)
-            var size_y = SIZES_Y[stitches[currStitch]]
+            size_y = SIZES_Y[stitches[currStitch]]
 
-          else if (stitches[currStitch] == "tog" || stitches[currStitch] == "insamest")
-            var size_y = SIZES_Y[stitches[currStitch +1][0]]
+          else if (stitches[currStitch] === "tog" || stitches[currStitch] === "insamest")
+            size_y = SIZES_Y[stitches[currStitch +1][0]]
 
           roundInfo.currRoundStitches.push(positions.length/3)
 
@@ -753,24 +756,29 @@ function generateRound(indices, positions, stitches, roundInfo)
           else
             placeVertexStitch(positions, size_y, prevBotom1)
 
+          console.log(size_y)
+
         }
         prevtop = roundInfo.currRoundStitches.at(-1)
 
 
-        if (stitches[currStitch] == "insamest")
+        if (stitches[currStitch] === "insamest")
         {
-          var join = !(currStitch + 2 >= stitches.length || stitches[currStitch+2] != JOIN)
+          let join = !(currStitch + 2 >= stitches.length || stitches[currStitch+2] !== JOIN)
           currStitch++
           handleInSameSt(indices, positions, stitches[currStitch], prevBotom1, prevBotom2, prevtop, roundInfo, join)
 
         }
-        else if(stitches[currStitch] == "tog")
+        else if(stitches[currStitch] === "tog")
         {
+          let join = !(currStitch + 2 >= stitches.length || stitches[currStitch+2] !== JOIN)
+          currStitch++
+          handleTog(indices, positions, stitches[currStitch], prevBotom1, prevtop, roundInfo, join)
 
         }
         else
         {
-          var join = !(currStitch + 1 >= stitches.length || stitches[currStitch+1] != JOIN)
+          let join = !(currStitch + 1 >= stitches.length || stitches[currStitch+1] !== JOIN)
           handleNormalStitch(indices, positions, stitches[currStitch], prevBotom1, prevBotom2, prevtop, roundInfo, join)
         }
 
@@ -780,21 +788,24 @@ function generateRound(indices, positions, stitches, roundInfo)
     currStitch++
   }
 
+  console.log(roundInfo.currRoundStitches)
+
 }
 
 function handleNormalStitch(indices, positions, stitch, prevBottom1, prevBottom2, prevTop, roundInfo, join= false)
 {
 
+  let actTop
   if (join)  //si si q es un join, unimos
   {
-    var actTop = roundInfo.currRoundStitches[0]
+    actTop = roundInfo.currRoundStitches[0]
     roundInfo.currRoundStitches.push(roundInfo.currRoundStitches[0])
   }
   else
   {
     roundInfo.currRoundStitches.push(positions.length/3)
     placeVertexStitch(positions, SIZES_Y[stitch], prevBottom2)
-    var actTop = positions.length/3 - 1;
+    actTop = positions.length/3 - 1;
   }
 
 
@@ -809,40 +820,41 @@ function handleNormalStitch(indices, positions, stitch, prevBottom1, prevBottom2
 
 function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, prevTop, roundInfo, join = false)
 {
-  var radious = SIZE_X / (2 * Math.sin(Math.PI / (stitches.length+1)));
-  var distance, vector;
+  let distance, vector;
 
   [distance, vector] = distanceBetweenVertex(positions, prevBottom1, prevBottom2);
-  var step = distance/stitches.length;
+  let step = distance/stitches.length;
 
 
-  var bottom1 = prevBottom1;
-  var top1 = prevTop;
+  let bottom1 = prevBottom1;
+  let top1 = prevTop;
 
 
-  for (var i = 0; i < stitches.length; i++) {
+  for (let i = 0; i < stitches.length; i++) {
 
 
-    if (i == stitches.length - 1) {
-      var bottom2 = prevBottom2;
+    let bottom2
+    if (i === stitches.length - 1) {
+      bottom2 = prevBottom2;
 
     }
     else {
       placeVertexWithOffset(positions, bottom1, step * vector[0], step * vector[1], step * vector[2]);
-      var bottom2 = positions.length / 3 - 1;
+      bottom2 = positions.length / 3 - 1;
     }
 
 
-    if (i == stitches.length - 1 && join)
+    let top2
+    if (i === stitches.length - 1 && join)
     {
-      var top2 = roundInfo.currRoundStitches[0]
+      top2 = roundInfo.currRoundStitches[0]
 
     }
     else
     {
       //colocamos el top q queda
       placeVertexStitch(positions, SIZES_Y[stitches[i]], bottom2, );
-      var top2 = positions.length/3 - 1;
+      top2 = positions.length/3 - 1;
     }
 
 
@@ -860,8 +872,62 @@ function handleInSameSt(indices, positions, stitches, prevBottom1, prevBottom2, 
 
 }
 
-function handleTog()
+function handleTog(indices, positions, stitches, prevBottom, prevTop, roundInfo, join = false)
 {
+  //cogemos cual va a ser nuestro punto más bajo (el q marque la altura del punto)
+  let Size_y = SIZES_Y[findSmaller(stitches)]
+  console.log(stitches)
+  console.log(Size_y)
+
+  let bottom1 = prevBottom
+  let top1 = prevTop
+  let top2 = top1
+  let intermediateSts = []
+  intermediateSts.push(top1)
+
+  //colocamos los triángulos, solo metiendo el primero y el último en el array
+  //roundInfo.currRoundStitches.push(top1)
+  for (let i = 0; i < stitches.length; i++) {
+
+
+    let bottom2
+
+    if(curr_direction === DIRECTION.AV)
+    {bottom2 = roundInfo.prevRoundStitches[roundInfo.currRoundIN+1]}
+    else
+    {bottom2 = roundInfo.prevRoundStitches[roundInfo.prevRoundOUT - roundInfo.currRoundIN -1]}
+
+
+
+    if (i === stitches.length - 1 && join)
+    {
+      top2 = roundInfo.currRoundStitches[0]
+    }
+    else
+    {
+      //colocamos el top q queda
+      placeVertexStitch(positions, Size_y, bottom2);
+      top2 = positions.length/3 - 1;
+    }
+
+    console.log(bottom1, bottom2, top1, top2)
+    makeTriangles(indices, bottom1, bottom2, top1, top2)
+
+
+    bottom1 = bottom2
+    top1 = top2
+
+
+    roundInfo.currRoundIN++;
+    intermediateSts.push(top2)
+
+  }
+  roundInfo.currRoundOUT++;
+  roundInfo.currRoundStitches.push(top1)
+
+  //registramos todos los puntos intermedios
+  roundInfo.stitchesToAlign.push(intermediateSts)
+
 
 }
 
@@ -869,7 +935,7 @@ function relaxAndAdjustStitches(positions, roundInfo)
 {
   const correction = 0.1;
   const radialCorrection = 0.2;
-  const maxIteration = 400;
+  const maxIteration = 200;
   let center;
   let r;
 
@@ -895,7 +961,6 @@ function relaxAndAdjustStitches(positions, roundInfo)
         const radiousIncrease = radialCorrection * diff * 0.5
 
         //movemos el primer vertice
-        //console.log(vector);
         let vectorFromCenter = unitVectorBetween2DPoints( [positions[v1*3], positions[v1*3 +2]], center)
         positions[v1*3] = positions[v1*3]- correction * (vector[0] * (diff/2) )+ radiousIncrease*vectorFromCenter[0];
         positions[v1*3 +1] = positions[v1*3 +1]- correction * (vector[1] * (diff/2) )
@@ -916,13 +981,11 @@ function relaxAndAdjustStitches(positions, roundInfo)
 
   }
 
-
-
 }
 
 function laplacianRelaxation(positions, roundInfo)
 {
-  const correction = 0.002;
+  const correction = 0.0015;
   let i = 1
   if (roundInfo.currRoundStitches[0] === roundInfo.currRoundStitches[-1])
     i = 0
@@ -950,6 +1013,49 @@ function laplacianRelaxation(positions, roundInfo)
     positions[curr * 3] += correction * (avgX - positions[curr * 3]);
     positions[curr * 3 + 1] += correction * (avgY - positions[curr * 3 + 1]);
     positions[curr * 3 + 2] += correction * (avgZ - positions[curr * 3 + 2]);
+  }
+}
+
+function alignTogVertexes(positions, vertexes)
+{
+  for (let i = 0; i < vertexes.length; ++i)
+  {
+    if (vertexes[i].length > 2) {
+
+
+      const firstVertex = vertexes[i][0];
+      const lastVertex = vertexes[i][vertexes[i].length - 1];
+
+      const firstIndex = firstVertex * 3;
+      const lastIndex = lastVertex * 3;
+
+      const x1 = positions[firstIndex];
+      const y1 = positions[firstIndex + 1];
+      const z1 = positions[firstIndex + 2];
+
+      // posición final
+      const x2 = positions[lastIndex];
+      const y2 = positions[lastIndex + 1];
+      const z2 = positions[lastIndex + 2];
+
+      const totalSteps = vertexes[i].length - 1;
+
+      // vector paso entre vértices
+      const stepX = (x2 - x1) / totalSteps;
+      const stepY = (y2 - y1) / totalSteps;
+      const stepZ = (z2 - z1) / totalSteps;
+
+      // mover solo los intermedios
+      for (let j = 1; j < vertexes[i].length - 1; j++) {
+        const vertex = vertexes[i][j];
+        const index = vertex * 3;
+
+        positions[index] = x1 + stepX * j;
+        positions[index + 1] = y1 + stepY * j;
+        positions[index + 2] = z1 + stepZ * j;
+      }
+    }
+
   }
 }
 
@@ -1006,15 +1112,15 @@ function distanceBetweenVertex(positions, vertex1, vertex2)
 {
   const baseIndex1 = vertex1 * 3;
 
-  var x1 = positions[baseIndex1];
-  var y1 = positions[baseIndex1 + 1];
-  var z1 = positions[baseIndex1 + 2];
+  let x1 = positions[baseIndex1];
+  let y1 = positions[baseIndex1 + 1];
+  let z1 = positions[baseIndex1 + 2];
 
   const baseIndex2 = vertex2 * 3;
 
-  var x2 = positions[baseIndex2];
-  var y2 = positions[baseIndex2 + 1];
-  var z2 = positions[baseIndex2 + 2];
+  let x2 = positions[baseIndex2];
+  let y2 = positions[baseIndex2 + 1];
+  let z2 = positions[baseIndex2 + 2];
 
   const dx = x2 - x1;
   const dy = y2 - y1;
@@ -1022,7 +1128,6 @@ function distanceBetweenVertex(positions, vertex1, vertex2)
 
   const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-  // Unit vector (avoid division by zero)
   const unitVector =
       distance === 0
           ? [0, 0, 0]
@@ -1040,12 +1145,8 @@ function distanceBetween2DPoints(a, b) {
 function unitVectorBetween2DPoints(a, b)
 {
   let dist = Math.hypot(a[0] - b[0], a[1] - b[1])
-  const unitVector =
-      dist === 0
-          ? [0, 0]
-          : [(a[0] - b[0]) / dist, (a[1] - b[1]) / dist];
 
-  return unitVector;
+  return dist === 0 ? [0, 0] : [(a[0] - b[0]) / dist, (a[1] - b[1]) / dist];
 
 }
 
