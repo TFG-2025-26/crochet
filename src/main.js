@@ -149,24 +149,24 @@ function generateMesh()
 ////////////////////////FUNCIONES PARA PROCESAR EL INPUT //////////////////
 function processRounds(input)
 {
-  var roundsIN = input.split("\n");
-  var roundsOUT = [];
-  var nVueltas = 1;
-  var errorFound = false; var i = 0;
+  let roundsIN = input.split("\n");
+  let roundsOUT = [];
+  let nVueltas = 1;
+  let errorFound = false; let i = 0;
   closed.isClosed = false;
 
 
-  var roundInfo = {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0};
+  let roundInfo = {prevRoundOUT : 0, currRoundIN : 0, currRoundOUT : 0};
   while (i < roundsIN.length && !errorFound)
   {
-    var puntosIN =  roundsIN[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
+    let puntosIN =  roundsIN[i].split(" ").filter(function(i){return i});  //el filter es para q puedas poner tantos especios en blanco como quieras
 
    if(puntosIN.length > 0)
     {
       
-      var nReps = 1;
-      var nRndWords = 2;
-      var error = validateRoundHeader(puntosIN, nVueltas)
+      let nReps = 1;
+      let nRndWords = 2;
+      let error = validateRoundHeader(puntosIN, nVueltas)
       if (error != null)
       {
         alert(error)
@@ -464,18 +464,18 @@ function parseStitch(puntosIN, j) {
 function validateRoundHeader(puntosIN, nVueltas)
 {
   var error = null;
-  if(puntosIN.length < 2 || puntosIN[0] != "rnd" || puntosIN[1] != nVueltas)
+  if(puntosIN.length < 2 || puntosIN[0] !== "rnd" || parseInt(puntosIN[1], 10) !== nVueltas)
     error = ("Formato incorrecto en la vuelta " + nVueltas + ". Debería empezar por \"rnd " + nVueltas + "\". Revise el fomato de linea.");
 
   //vemos si son varias vueltas:
   if (puntosIN.length > 4 && puntosIN[2] === "-")
   {
-    if(parseInt(puntosIN[3],10).toString() != puntosIN[3] || puntosIN[3] <= nVueltas)
+    if(parseInt(puntosIN[3],10).toString() !== puntosIN[3] || puntosIN[3] <= nVueltas)
       error = ("Formato incorrecto en la vuelta " + nVueltas + ". Revise el uso de guiones (-).");
   }
 
   //vemos si acaba en join o turn
-  if(puntosIN[puntosIN.length -1] !== MAGICRING && nVueltas !== 0 &&  puntosIN[puntosIN.length-1] !== JOIN && puntosIN[puntosIN.length-1] != TURN)
+  if(puntosIN[puntosIN.length -1] !== MAGICRING && nVueltas !== 0 &&  puntosIN[puntosIN.length-1] !== JOIN && puntosIN[puntosIN.length-1] !== TURN)
     error = ("Error al final de la vuelta " + nVueltas + ". Una vuelta debe acabar en \"join\", \"turn\" o \"F/o\".");
 
   return error;
