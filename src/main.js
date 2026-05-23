@@ -1,7 +1,5 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Const, round } from 'three/tsl';
-import { TSL } from 'three/webgpu';
 
 const SIZE_X = 1; //ancho de un punto. constante.
 
@@ -22,12 +20,12 @@ const BRACKETS = {open: "(", close: ")"};
 const CH = "ch";
 const SKIP = "skip";
 
-var closed = {isClosed: false, radious: 0};
+let closed = {isClosed: false, radious: 0};
 const DIRECTION = Object.freeze({AV: 1, RET: -1});
-var curr_direction = DIRECTION.RET;
+let curr_direction = DIRECTION.RET;
 
 
-////////////INICIALIZACIÓN DE TODO/////////////
+////////////INICIALIZACIÓN/////////////
 
 const container = document.querySelector("#panes>.right");
 
@@ -361,7 +359,7 @@ function processRound(puntosIN, startIndex, inInParenthesis) {
 
       else
       {
-        var repeat = 1;
+        let repeat = 1;
         if (puntosIN[j] === "x")
         {
           j++
@@ -371,7 +369,7 @@ function processRound(puntosIN, startIndex, inInParenthesis) {
           }
         }
 
-        for (var x = 0; x < repeat; x++)
+        for (let x = 0; x < repeat; x++)
         {
           puntosOut = puntosOut.concat(result.puntosOut);
         }
@@ -463,7 +461,7 @@ function parseStitch(puntosIN, j) {
 
 function validateRoundHeader(puntosIN, nVueltas)
 {
-  var error = null;
+  let error = null;
   if(puntosIN.length < 2 || puntosIN[0] !== "rnd" || parseInt(puntosIN[1], 10) !== nVueltas)
     error = ("Formato incorrecto en la vuelta " + nVueltas + ". Debería empezar por \"rnd " + nVueltas + "\". Revise el fomato de linea.");
 
@@ -638,9 +636,9 @@ function generateFirstRound(roundInfo, closed, stitches, positions, indices)
     }
     else  //los colocamos en circulo
     {
-      var theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
+      let theta = 2 * Math.asin(SIZE_X/ (2* closed.radious));
       
-      var disp = 0.02
+      let disp = 0.02
       if (stitches[stitches.length -1] === JOIN)
       {
         disp = 0;
@@ -1192,11 +1190,11 @@ function circleContainsAllPoints(circle, radius, pts, eps = 1e-8) {
 }
 
 function findSmallestCircumference(positions, indexes) {
-  var pts = []
-  for (var i = 0; i < indexes.length; i++)
+  let pts = []
+  for (let i = 0; i < indexes.length; i++)
   {
-    var x = positions[indexes[i]* 3];
-    var z = positions[indexes[i] * 3 +2];
+    let x = positions[indexes[i]* 3];
+    let z = positions[indexes[i] * 3 +2];
 
     pts.push([x, z]);
   }
