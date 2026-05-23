@@ -70,19 +70,28 @@ The application will be available at: `http://localhost:5173`
 This is the current project hierarchy:
 
 project/
-|
-|-- paperwork/
-|-- bib/
-|-- node_modules/
-|-- src/
-|   |-- index.html
-|   |-- main.js
-|   |-- icon.ico
-|   |--banner.png
-|
-|-- package.json
-|-- package-lock.json
-|__ README.md
+
+├── paperwork/
+
+├── bib/
+
+├── node_modules/
+
+├── src/
+
+│     ├── index.html
+
+│     ├── main.js
+
+│     ├── icon.ico
+
+│     └── banner.png
+
+├── package.json
+
+├── package-lock.json
+
+└── README.md
 
 The most important part of the code takes place in the main.js file.
 
