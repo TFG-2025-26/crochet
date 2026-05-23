@@ -84,5 +84,7 @@ project/
 |-- package-lock.json
 |__ README.md
 
+The most important part of the code takes place in the main.js file.
+
 
 
