@@ -229,15 +229,16 @@ function processRounds(input)
     i++
 
   }
-  if(roundsOUT[0][0] === MAGICRING)
+  if(roundsOUT[0][0] === MAGICRING && roundsOUT.length > 1)
   {
     closed.isClosed = true;
+    roundsOUT[1] = removeRedundanciesFirstRound(roundsOUT[1])
     closed.radious = SIZE_X / (2 * Math.sin(Math.PI / (roundsOUT[1].length - 1)))
     roundsOUT[1] = roundsOUT[0].concat(roundsOUT[1]);
     roundsOUT.shift();
   }
 
-  //console.log(roundsOUT);
+  console.log(roundsOUT);
 
   if(!errorFound)
   {
@@ -525,6 +526,31 @@ function removeRedundancies(stitches)
 
       }
       i++
+    }
+    else
+    {
+      cleaned.push(stitches[i]);
+    }
+  }
+  return cleaned;
+
+}
+
+function removeRedundanciesFirstRound(stitches)
+{
+  let cleaned = [];
+  for (let i = 0; i < stitches.length; i++)
+  {
+    if (stitches[i] === "insamest")
+    {
+      i++
+      cleaned = cleaned.concat(stitches[i]);
+    }
+    else if (stitches[i] === "tog")
+    {
+      i++
+      let st = findSmaller(stitches[i]);
+      cleaned.push(st)
     }
     else
     {
